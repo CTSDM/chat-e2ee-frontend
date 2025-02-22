@@ -1,0 +1,46 @@
+.input-container {
+  position: relative;
+}
+
+.input-container input {
+  background: black;
+  border-radius: 6px;
+  padding: 15px 15px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.input {
+  border-color: darkgrey;
+}
+
+.wrong {
+  border: red 5px solid;
+}
+
+.correct {
+  border: green 5px solid;
+}
+
+.placeholder {
+  position: absolute;
+  background: black;
+  padding: 5px;
+  user-select: none;
+  pointer-events: none;
+  border-radius: 6px;
+  transition: ease 0.25s all;
+}
+
+.input-container input:placeholder-shown+.placeholder {
+  top: 5px;
+  left: 10px;
+}
+
+.input-container input:focus+.placeholder,
+.input-container input:not(:placeholder-shown)+.placeholder {
+  color: #00AAFF;
+  font-size: 0.8rem;
+  top: -12px;
+  left: 9px;
+}

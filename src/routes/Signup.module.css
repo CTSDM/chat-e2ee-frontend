@@ -1,0 +1,36 @@
+.container {
+  display: grid;
+  gap: 40px;
+  max-width: min(max(500px, 70vw), 1000px);
+  margin: auto;
+}
+
+.container-inputs {
+  display: grid;
+  justify-content: center;
+  gap: 15px;
+  padding: 40px 200px;
+}
+
+.errors,
+.instructions {
+  border: 2px solid black;
+  border-radius: 5px;
+  padding: 10px 20px;
+}
+
+.errors {
+  height: fit-content;
+  align-self: end;
+}
+
+.instructions {
+  font-size: 1.1rem;
+  background: darkslategrey;
+}
+
+.container-information {
+  display: grid;
+  gap: 10px;
+  align-self: end;
+}

@@ -1,0 +1,9 @@
+.container {
+  background-color: #333333;
+  padding: 10px 20px;
+  border-radius: 20px;
+}
+
+.error {
+  color: greenyellow;
+}

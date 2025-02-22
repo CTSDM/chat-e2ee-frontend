@@ -1,0 +1,35 @@
+.container-inputs {
+  display: grid;
+  gap: 15px;
+  background: black;
+  padding: 10vh 30vw;
+  border-radius: 30px;
+}
+
+.container {
+  display: grid;
+  gap: 40px;
+  max-width: min(max(500px, 70vw), 1000px);
+  margin: auto;
+}
+
+.message {
+  padding-left: 20px;
+  font-weight: 600;
+  align-self: end;
+}
+
+.errors {
+  height: fit-content;
+  align-self: end;
+}
+
+.container-inputs {
+  justify-content: center;
+  padding: 40px 100px;
+}
+
+button.input {
+  background-color: grey;
+  justify-self: end;
+}

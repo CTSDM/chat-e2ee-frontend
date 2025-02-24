@@ -59,8 +59,8 @@ export default function Signup() {
                         <div>
                             The password must have between {env.validation.users.password.minLength}{" "}
                             and {env.validation.users.password.maxLength} characters. It must
-                            include at least one upper case letter, one lowe case letter, one number
-                            and one special symbol.
+                            include at least one upper case letter, one lower case letter, one
+                            number and one special symbol.
                         </div>
                     </div>
                     {info ? (

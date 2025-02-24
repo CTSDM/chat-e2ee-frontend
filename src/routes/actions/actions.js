@@ -1,5 +1,6 @@
 import requests from "../../utils/requests.js";
 import cryptoUtils from "../../utils/crypto.js";
+import { env } from "../../../config/config.js";
 
 const actionLogin = async ({ request }) => {
     const data = await request.formData();
@@ -22,8 +23,9 @@ const actionSignup = async ({ request }) => {
         iv,
     );
     const submission = {
-        username: data.get("username"),
-        password: data.get("password"),
+        privateUsername: data.get(env.inputs.signup[0].name),
+        publicUsername: data.get(env.inputs.signup[1].name),
+        password: data.get(env.inputs.signup[2].name),
         publicKey: publicKey,
         privateKeyEncrypted: privateKeyEncripted,
         salt,

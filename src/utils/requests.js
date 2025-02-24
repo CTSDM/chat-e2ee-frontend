@@ -29,8 +29,12 @@ async function submitSignup(data) {
             "Content-Type": "application/json",
         },
     });
-    const json = await response.json();
-    return { status: response.status, data: json };
+    if (response.ok) {
+        return { status: response.status };
+    } else {
+        const json = await response.json();
+        return { status: response.status, data: json };
+    }
 }
 
 async function mock(data) {

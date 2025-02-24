@@ -22,13 +22,13 @@ const env = {
         signup: [
             {
                 type: "text",
-                name: "username-private",
+                name: "privateUsername",
                 placeholder: import.meta.env.VITE_USERNAME_PRIVATE_PLACEHOLDER,
                 validation: "username",
             },
             {
                 type: "text",
-                name: "username-public",
+                name: "publicUsername",
                 placeholder: import.meta.env.VITE_USERNAME_PLACEHOLDER,
                 validation: "username",
             },

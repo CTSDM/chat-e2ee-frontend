@@ -37,19 +37,4 @@ async function submitSignup(data) {
     }
 }
 
-async function mock(data) {
-    const url = `${env.serverUrl}/signup`;
-    const response = await fetch(url, {
-        mode: "cors",
-        credentials: "include",
-        method: "post",
-        body: JSON.stringify(data),
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
-    const json = await response.json();
-    return { status: response.status, data: json };
-}
-
-export default { mock, getLogin, submitSignup };
+export default { getLogin, submitSignup };

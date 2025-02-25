@@ -160,6 +160,10 @@ function ArrBufferToJSON(arrBuffer) {
     return JSON.stringify(Array.from(new Uint8Array(arrBuffer)));
 }
 
+function UintArrToJson(arr8) {
+    return JSON.stringify(Array.from(arr8));
+}
+
 export default {
     curriedHandler,
     handleChangeUsername,
@@ -167,6 +171,7 @@ export default {
     validateData,
     JSONtoArrBuffer,
     ArrBufferToJSON,
+    UintArrToJson,
 };
 
 export { checkUsername, checkPassword, getHrefsInfo };

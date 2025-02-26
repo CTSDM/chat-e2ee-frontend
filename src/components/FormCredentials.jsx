@@ -2,7 +2,7 @@ import { Form } from "react-router-dom";
 import { env } from "../../config/config.js";
 import InputComp from "./InputComp.jsx";
 import ButtonSubmit from "./ButtonSubmit.jsx";
-import utils from "../utils/utils.js";
+import { validationUtils as validation } from "../utils/utils.js";
 import PropTypes from "prop-types";
 import styles from "./FormCredentials.module.css";
 
@@ -45,10 +45,9 @@ export default function FormCredentials({
                             }
                             handleOnChange={
                                 validate
-                                    ? utils.curriedHandler(utils.checkFunctions[input.validation])(
-                                          setMsgArr,
-                                          msgArr,
-                                      )
+                                    ? validation.curriedHandler(
+                                          validation.checkFunctions[input.validation],
+                                      )(setMsgArr, msgArr)
                                     : () => {}
                             }
                         />
@@ -64,7 +63,7 @@ FormCredentials.propTypes = {
     inputs: PropTypes.array.isRequired,
     msgArr: PropTypes.array,
     setMsgArr: PropTypes.func,
-    action: PropTypes.string.isRequired,
+    action: PropTypes.string,
     validate: PropTypes.bool.isRequired,
     handleSubmit: PropTypes.func,
     buttonText: PropTypes.string.isRequired,

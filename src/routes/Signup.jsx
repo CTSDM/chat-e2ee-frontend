@@ -4,14 +4,14 @@ import { Context } from "./utils/globalStateContext.js";
 import { env } from "../../config/config.js";
 import ErrMsg from "../components/ErrMsg.jsx";
 import routes from "../routes.jsx";
-import { getLengthArrofArr } from "../utils/utils.js";
+import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
 import styles from "./Signup.module.css";
 import FormCredentials from "../components/FormCredentials.jsx";
 
 export default function Signup() {
     const [info, setInfo] = useState("");
     const [msgArr, setMsgArr] = useState([[], [], []]);
-    const [isLogged, setIsLogged, , , refMessage] = useContext(Context);
+    const { isLogged, setIsLogged, message: refMessage } = useContext(Context);
     const navigate = useNavigate();
     const response = useActionData();
 
@@ -35,7 +35,7 @@ export default function Signup() {
 
     function handleSubmit(e) {
         let errCount = 0;
-        errCount = errCount + getLengthArrofArr(msgArr);
+        errCount = errCount + dataManipulation.getLengthArrofArr(msgArr);
         if (errCount > 0) {
             setInfo("THE FORM IS BEING VALIDATED ON THE FRONT END SIDE");
             e.preventDefault();
@@ -72,7 +72,7 @@ export default function Signup() {
                                         messages={response.data.errMsg || [].concat(...msgArr)}
                                     />
                                 ) : null}
-                                {getLengthArrofArr(msgArr) ? (
+                                {dataManipulation.getLengthArrofArr(msgArr) ? (
                                     <ErrMsg messages={[].concat(...msgArr)} />
                                 ) : null}
                             </>

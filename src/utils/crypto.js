@@ -1,5 +1,5 @@
 import { env } from "../../config/config.js";
-import utils from "./utils.js";
+import { dataManipulationUtils as dataManipulation } from "./utils.js";
 
 async function getKeyMaterial(password) {
     const enc = new TextEncoder();
@@ -50,7 +50,7 @@ async function getKeyPairPrivateEncrypted(key, iv) {
         getExportedKeyString(keyPair.privateKey),
     ]);
     const privateKeyEncrypted = await getEncryptedMessage(key, iv, privateKeyExported);
-    const privateKeyEncryptedExported = utils.ArrBufferToJSON(privateKeyEncrypted);
+    const privateKeyEncryptedExported = dataManipulation.ArrBufferToJSON(privateKeyEncrypted);
 
     return [publicKeyExported, privateKeyEncryptedExported];
 }
@@ -77,15 +77,24 @@ function getRandomValues(length) {
     return window.crypto.getRandomValues(new Uint8Array(length));
 }
 
-async function importKey(keyToBeImported) {
+async function importKey(keyToBeImported, options) {
     const key = await window.crypto.subtle.importKey(
         "jwk",
         keyToBeImported,
         { name: "RSA-OAEP", hash: "SHA-256" },
         true,
-        ["decrypt"],
+        options,
     );
     return key;
+}
+
+async function importPrivateKeyEncrypted(keyEncrypted, password, salt, iv) {
+    const dataArr = dataManipulation.objToArrBuffer(keyEncrypted);
+    const key = await getEncryptionKey(password, dataManipulation.objToArrBuffer(salt));
+    const ivArr = dataManipulation.objToArrBuffer(iv);
+    const privateKeyJWK = JSON.parse(await getDecryptedMessage(key, ivArr, dataArr));
+    const privateKey = await importKey(privateKeyJWK, ["decrypt"]);
+    return privateKey;
 }
 
 export default {
@@ -94,4 +103,5 @@ export default {
     getEncryptionKey,
     getKeyPairPrivateEncrypted,
     importKey,
+    importPrivateKeyEncrypted,
 };

@@ -5,11 +5,18 @@ const elementsNavBar = {
 
 const env = {
     inputs: {
+        decrypt: [
+            {
+                type: "password",
+                name: "keyPassword",
+                placeholder: import.meta.env.VITE_PASSWORD_KEY_PLACEHOLDER,
+            },
+        ],
         login: [
             {
                 type: "text",
                 name: "username",
-                placeholder: import.meta.env.VITE_USERNAME_PLACEHOLDER,
+                placeholder: import.meta.env.VITE_USERNAME_PRIVATE_PLACEHOLDER,
                 validation: "username",
             },
             {
@@ -29,7 +36,7 @@ const env = {
             {
                 type: "text",
                 name: "publicUsername",
-                placeholder: import.meta.env.VITE_USERNAME_PLACEHOLDER,
+                placeholder: import.meta.env.VITE_USERNAME_PUBLIC_PLACEHOLDER,
                 validation: "username",
             },
             {

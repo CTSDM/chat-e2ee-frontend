@@ -18,6 +18,21 @@ async function getLogin(controller) {
     return { status: response.status };
 }
 
+async function submitLogin(data) {
+    const url = `${env.serverUrl}/login`;
+    const response = await fetch(url, {
+        mode: "cors",
+        credentials: "include",
+        method: "post",
+        body: JSON.stringify(data),
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+    const userData = await response.json();
+    return { status: response.status, ...userData };
+}
+
 async function submitSignup(data) {
     const url = `${env.serverUrl}/signup`;
     const response = await fetch(url, {
@@ -37,4 +52,4 @@ async function submitSignup(data) {
     }
 }
 
-export default { getLogin, submitSignup };
+export default { getLogin, submitSignup, submitLogin };

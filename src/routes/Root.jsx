@@ -4,16 +4,15 @@ import PropTypes from "prop-types";
 import requests from "../utils/requests.js";
 import { Context } from "./utils/globalStateContext.js";
 import NavigationBar from "../components/NavigationBar.jsx";
-import styles from "./GlobalStateProvider.module.css";
+import styles from "./Root.module.css";
 import { env } from "../../config/config.js";
 
 function GlobalContextProvider() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLogged, setIsLogged] = useState(false);
-    const [username, setUsername] = useState(null);
-    const [privateKey, setPrivateKey] = useState(null);
-    const [publicKey, setPublicKey] = useState(null);
-    const [encryptionKey, setEncryptionKey] = useState(null);
+    const [privateUsername, setPrivateUsername] = useState(null);
+    const [publicUsername, setPublicUsername] = useState(null);
+    const [privateKey, setPrivateKey] = useState();
     const message = useRef();
 
     useEffect(() => {
@@ -28,10 +27,12 @@ function GlobalContextProvider() {
                 }
                 if (response.status === 200) {
                     setIsLogged(true);
-                    setUsername(response.username);
+                    setPrivateUsername(response.privateUsername);
+                    setPublicUsername(response.publicUsername);
                 } else {
                     setIsLogged(false);
-                    setUsername(null);
+                    setPrivateUsername(null);
+                    setPublicUsername(null);
                 }
                 setIsLoading(false);
             } catch (err) {
@@ -45,23 +46,24 @@ function GlobalContextProvider() {
 
     return (
         <Context.Provider
-            value={[
+            value={{
                 isLogged,
                 setIsLogged,
-                username,
-                setUsername,
-                message,
+                privateUsername,
+                setPrivateUsername,
+                publicUsername,
+                setPublicUsername,
+                privateKey,
                 setPrivateKey,
-                setPublicKey,
-                setEncryptionKey,
-            ]}
+                message,
+            }}
         >
             {isLoading ? (
                 <div>loading</div>
             ) : (
                 <>
                     <header>
-                        <NavigationBar isLogged={isLogged} username={username} />
+                        <NavigationBar isLogged={isLogged} publicUsername={publicUsername} />
                     </header>
                     <div className={styles.container}>
                         <Outlet />

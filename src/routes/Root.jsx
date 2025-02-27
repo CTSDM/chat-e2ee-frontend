@@ -12,7 +12,8 @@ function GlobalContextProvider() {
     const [isLogged, setIsLogged] = useState(false);
     const [privateUsername, setPrivateUsername] = useState(null);
     const [publicUsername, setPublicUsername] = useState(null);
-    const [privateKey, setPrivateKey] = useState();
+    const [contactList, setContactList] = useState({});
+    const [privateKey, setPrivateKey] = useState(null);
     const message = useRef();
 
     useEffect(() => {
@@ -55,20 +56,22 @@ function GlobalContextProvider() {
                 setPublicUsername,
                 privateKey,
                 setPrivateKey,
+                contactList,
+                setContactList,
                 message,
             }}
         >
             {isLoading ? (
                 <div>loading</div>
             ) : (
-                <>
+                <div className={styles.container}>
                     <header>
                         <NavigationBar isLogged={isLogged} publicUsername={publicUsername} />
                     </header>
                     <div className={styles.container}>
                         <Outlet />
                     </div>
-                </>
+                </div>
             )}
         </Context.Provider>
     );

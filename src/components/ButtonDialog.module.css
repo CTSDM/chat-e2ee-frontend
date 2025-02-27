@@ -1,0 +1,24 @@
+.container {
+  display: grid;
+  place-content: center;
+  position: relative;
+}
+
+.container dialog::backdrop {
+  background: rgba(2, 2, 2, 0.5);
+}
+
+.container dialog {
+  position: absolute;
+  margin: auto;
+}
+
+.dialogContent {
+  width: 20vw;
+  height: 30vh;
+  min-width: 400px;
+  min-height: 200px;
+  background: #807E75;
+  display: grid;
+  place-content: center;
+}

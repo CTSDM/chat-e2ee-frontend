@@ -52,4 +52,26 @@ async function submitSignup(data) {
     }
 }
 
-export default { getLogin, submitSignup, submitLogin };
+async function getPublicKey(data) {
+    const url = `${env.serverUrl}/users/keys`;
+    const response = await fetch(url, {
+        mode: "cors",
+        credentials: "include",
+        method: "post",
+        body: JSON.stringify(data),
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+    if (response.ok) {
+        const json = await response.json();
+        return { status: response.status, publicKey: json.publicKey };
+    } else if (response.status === 400) {
+        const json = await response.json();
+        return { status: response.status, errMsg: json.errMsg };
+    } else {
+        return { status: response.status };
+    }
+}
+
+export default { getLogin, submitSignup, submitLogin, getPublicKey };

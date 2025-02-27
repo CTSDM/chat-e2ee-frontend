@@ -4,6 +4,7 @@ import ErrorComponent from "./components/ErrorComponent.jsx";
 import Login from "./routes/Login.jsx";
 import { actionLogin, actionSignup } from "./routes/actions/actions.js";
 import Signup from "./routes/Signup.jsx";
+import Homepage from "./routes/Homepage.jsx";
 
 const routesConfig = [
     {
@@ -11,6 +12,11 @@ const routesConfig = [
         element: <Root />,
         errorElement: <ErrorComponent />,
         children: [
+            {
+                path: "/",
+                element: <Homepage />,
+                errorElement: <ErrorComponent />,
+            },
             {
                 path: "/login",
                 element: <Login />,

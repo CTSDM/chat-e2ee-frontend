@@ -4,8 +4,9 @@ import PropTypes from "prop-types";
 import requests from "../utils/requests.js";
 import { Context } from "./utils/globalStateContext.js";
 import NavigationBar from "../components/NavigationBar.jsx";
-import styles from "./Root.module.css";
 import { env } from "../../config/config.js";
+import { userUtils } from "../utils/utils.js";
+import styles from "./Root.module.css";
 
 function GlobalContextProvider() {
     const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +16,7 @@ function GlobalContextProvider() {
     const [contactList, setContactList] = useState({});
     const [privateKey, setPrivateKey] = useState(null);
     const message = useRef();
+    const userVars = useRef({});
 
     useEffect(() => {
         const controller = new AbortController();
@@ -30,6 +32,7 @@ function GlobalContextProvider() {
                     setIsLogged(true);
                     setPrivateUsername(response.privateUsername);
                     setPublicUsername(response.publicUsername);
+                    userUtils.updateOneTimeVariables(userVars, response);
                 } else {
                     setIsLogged(false);
                     setPrivateUsername(null);
@@ -58,6 +61,7 @@ function GlobalContextProvider() {
                 setPrivateKey,
                 contactList,
                 setContactList,
+                userVars,
                 message,
             }}
         >

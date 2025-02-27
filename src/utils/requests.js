@@ -9,11 +9,8 @@ async function getLogin(controller) {
         method: "get",
     });
     if (response.ok) {
-        const json = await response.json();
-        return {
-            status: response.status,
-            username: json.username,
-        };
+        const userData = await response.json();
+        return { status: response.status, ...userData };
     }
     return { status: response.status };
 }
@@ -73,5 +70,15 @@ async function getPublicKey(data) {
         return { status: response.status };
     }
 }
+async function submitLogout(controller) {
+    const url = `${env.serverUrl}/logout`;
+    const response = await fetch(url, {
+        mode: "cors",
+        method: "post",
+        credentials: "include",
+        signal: controller.signal,
+    });
+    return response;
+}
 
-export default { getLogin, submitSignup, submitLogin, getPublicKey };
+export default { getLogin, submitSignup, submitLogin, submitLogout, getPublicKey };

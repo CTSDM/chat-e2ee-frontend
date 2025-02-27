@@ -2,7 +2,7 @@ import { useState, useContext, useEffect } from "react";
 import { useNavigate, useActionData, redirect } from "react-router-dom";
 import { Context } from "./utils/globalStateContext.js";
 import FormCredentials from "../components/FormCredentials.jsx";
-import { cryptoUtils } from "../utils/utils.js";
+import { cryptoUtils, userUtils } from "../utils/utils.js";
 import { env } from "../../config/config.js";
 import styles from "./Login.module.css";
 
@@ -14,6 +14,8 @@ export default function Login() {
         setPrivateUsername,
         setPublicUsername,
         setPrivateKey,
+        privateKey,
+        userVars,
         message: refMessage,
     } = useContext(Context);
     const navigate = useNavigate();
@@ -27,7 +29,7 @@ export default function Login() {
     }, [refMessage]);
 
     useEffect(() => {
-        if (isLogged) {
+        if (isLogged && privateKey) {
             navigate("/");
             return;
         }
@@ -37,6 +39,7 @@ export default function Login() {
                 setIsLogged(true);
                 setPrivateUsername(response.privateUsername);
                 setPublicUsername(response.publicUsername);
+                userUtils.updateOneTimeVariables(userVars, response);
                 return;
             } else {
                 setInfo("YOU NOT APE");
@@ -45,7 +48,7 @@ export default function Login() {
                 return;
             }
         }
-    }, [response]);
+    }, [response, privateKey]);
 
     function decryptPassword(e) {
         // obtain the data from the form
@@ -56,16 +59,16 @@ export default function Login() {
         (async () => {
             try {
                 const key = await cryptoUtils.importPrivateKeyEncrypted(
-                    response.privateKeyEncrypted,
+                    userVars.current.privateKeyEncrypted,
                     password,
-                    response.salt,
-                    response.iv,
+                    userVars.current.salt,
+                    userVars.current.iv,
                 );
                 setPrivateKey(key);
                 navigate("/");
             } catch (err) {
                 console.log(err);
-                setInfo("Something went wrong while decrypting the key");
+                setInfo("Wrong password");
             }
         })();
     }

@@ -70,6 +70,7 @@ const env = {
         },
     },
     serverUrl: import.meta.env.VITE_SERVER,
+    wsUrl: import.meta.env.VITE_WS_SERVER,
     dev: {
         status: import.meta.env.VITE_DEV_STATUS,
         delay: import.meta.env.VITE_DELAY,

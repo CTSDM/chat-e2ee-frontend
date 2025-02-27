@@ -5,6 +5,7 @@ import Login from "./routes/Login.jsx";
 import { actionLogin, actionSignup } from "./routes/actions/actions.js";
 import Signup from "./routes/Signup.jsx";
 import Homepage from "./routes/Homepage.jsx";
+import Logout from "./routes/Logout.jsx";
 
 const routesConfig = [
     {
@@ -27,6 +28,11 @@ const routesConfig = [
                 path: "/signup",
                 element: <Signup />,
                 action: actionSignup,
+                errorElement: <ErrorComponent />,
+            },
+            {
+                path: "/logout",
+                element: <Logout />,
                 errorElement: <ErrorComponent />,
             },
         ],

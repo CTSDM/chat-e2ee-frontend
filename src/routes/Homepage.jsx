@@ -11,9 +11,9 @@ import styles from "./Homepage.module.css";
 import { cryptoUtils } from "../utils/utils.js";
 
 function Homepage() {
-    const { isLogged, contactList, setContactList } = useContext(Context);
+    const { isLogged, privateKey, contactList, setContactList } = useContext(Context);
 
-    if (isLogged === false) {
+    if (isLogged === false || privateKey === null) {
         routes.navigate("/login");
     }
 

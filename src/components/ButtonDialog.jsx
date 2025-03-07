@@ -21,16 +21,21 @@ function ButtonDialog({ text, textModal, input, onSubmit }) {
 
     function handleSubmit(e) {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
+        const form = e.currentTarget;
+        const formData = new FormData(form);
         const value = formData.get(input.name);
         onSubmit(value);
         const dialog = document.querySelector("dialog");
         dialog.classList.remove(styles.dialogContent);
         dialog.close();
+        form.reset();
     }
 
     function handleOnCloseDialog(e) {
-        e.currentTarget.classList.remove(styles.dialogContent);
+        const dialog = e.currentTarget;
+        const form = dialog.querySelector("form");
+        dialog.classList.remove(styles.dialogContent);
+        form.reset();
     }
 
     return (

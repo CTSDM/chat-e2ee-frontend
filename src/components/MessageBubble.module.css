@@ -1,0 +1,82 @@
+.bubble {
+  background: red;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 7px;
+  border-radius: 20px;
+  max-width: 500px;
+}
+
+.time {
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+
+.content {
+  overflow-wrap: break-word;
+}
+
+.sender {
+  background: #2b5278;
+  border-bottom-right-radius: 0px;
+  align-self: end;
+  margin-right: 10px;
+}
+
+.receiver {
+  background: #182533;
+  border-bottom-left-radius: 0 0;
+  align-self: start;
+  margin-left: 10px;
+}
+
+
+.sender,
+.receiver {
+  height: fit-content;
+}
+
+.invBlock,
+.block {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  place-self: end;
+}
+
+.invBlock.sender {
+  top: -10px;
+  border-radius: 0 0 0 100%;
+  z-index: 2;
+  background-color: #0e1621;
+}
+
+.block.sender {
+  top: -10px;
+  z-index: 1;
+}
+
+.invBlock.receiver {
+  right: 0px;
+  top: -10px;
+  border-radius: 0 0 100% 0;
+  z-index: 2;
+  background-color: #0e1621;
+}
+
+.block.receiver {
+  right: 0px;
+  top: -10px;
+  z-index: 1;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.panson {
+  height: 0;
+  position: relative;
+}

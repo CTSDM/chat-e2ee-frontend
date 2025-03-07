@@ -5,6 +5,11 @@ const elementsNavBar = {
 
 const env = {
     inputs: {
+        message: {
+            type: "text",
+            name: "message",
+            placeholder: "Message",
+        },
         decrypt: [
             {
                 type: "password",
@@ -78,6 +83,13 @@ const env = {
     crypto: {
         iterations: import.meta.env.VITE_CRYPTO_ITERATIONS,
     },
+    test: {
+        privateKeyEncrypted: import.meta.env.VITE_TEST_PRIVATE_KEY_ENCRYPTED,
+        salt: import.meta.env.VITE_TEST_SALT,
+        iv: import.meta.env.VITE_TEST_IV,
+    },
 };
+
+env.wsType = env.dev.status ? "ws" : "wss";
 
 export { env, elementsNavBar };

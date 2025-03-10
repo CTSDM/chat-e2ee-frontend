@@ -19,7 +19,7 @@ const actionSignup = async ({ request }) => {
     const salt = cryptoUtils.getRandomValues(16);
     const iv = cryptoUtils.getRandomValues(12);
     const encryptionKey = await cryptoUtils.getEncryptionKey(keyPassword, salt);
-    const [publicKey, privateKeyEncripted] = await cryptoUtils.getKeyPairPrivateEncrypted(
+    const [publicKey, privateKeyEncrypted] = await cryptoUtils.getKeyPairPrivateEncrypted(
         encryptionKey,
         iv,
     );
@@ -28,11 +28,10 @@ const actionSignup = async ({ request }) => {
         publicUsername: data.get(env.inputs.signup[1].name),
         password: data.get(env.inputs.signup[2].name),
         publicKey: publicKey,
-        privateKeyEncrypted: privateKeyEncripted,
+        privateKeyEncrypted: privateKeyEncrypted,
         salt: dataManipulation.UintArrToJson(salt),
         iv: dataManipulation.UintArrToJson(iv),
     };
-
     return await requests.submitSignup(submission);
 };
 

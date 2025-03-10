@@ -49,13 +49,12 @@ async function submitSignup(data) {
     }
 }
 
-async function getPublicKey(data) {
-    const url = `${env.serverUrl}/users/keys`;
+async function getPublicKey(user) {
+    const url = `${env.serverUrl}/users/${user}/keys`;
     const response = await fetch(url, {
         mode: "cors",
         credentials: "include",
-        method: "post",
-        body: JSON.stringify(data),
+        method: "get",
         headers: {
             "Content-Type": "application/json",
         },

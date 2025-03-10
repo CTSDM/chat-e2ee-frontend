@@ -5,6 +5,7 @@ import FormCredentials from "../components/FormCredentials.jsx";
 import { cryptoUtils, userUtils } from "../utils/utils.js";
 import { env } from "../../config/config.js";
 import styles from "./Login.module.css";
+import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
 
 export default function Login() {
     const [info, setInfo] = useState("");
@@ -14,11 +15,14 @@ export default function Login() {
         setPrivateUsername,
         setPublicUsername,
         setPrivateKey,
+        setPublicKey,
         privateKey,
         userVars,
         message: refMessage,
     } = useContext(Context);
     const navigate = useNavigate();
+    // the below response only gets refreshed when we submit the login form
+    // however, if we are already logged in, it won't udpate anything
     const response = useActionData();
 
     // We only want the success signup message to be shown once
@@ -39,6 +43,18 @@ export default function Login() {
                 setIsLogged(true);
                 setPrivateUsername(response.privateUsername);
                 setPublicUsername(response.publicUsername);
+                (async () => {
+                    const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
+                    const publicKeyJWK = JSON.parse(
+                        dataManipulation.Uint8ArrayToStr(publicKeyJWKArr),
+                    );
+                    const publicKey = await cryptoUtils.importKey(
+                        publicKeyJWK,
+                        { name: "RSA-OAEP", hash: "SHA-256" },
+                        ["encrypt"],
+                    );
+                    setPublicKey(publicKey);
+                })();
                 userUtils.updateOneTimeVariables(userVars, response);
                 return;
             } else {
@@ -48,7 +64,7 @@ export default function Login() {
                 return;
             }
         }
-    }, [response, privateKey]);
+    }, [response, privateKey, isLogged]);
 
     function decryptPassword(e) {
         // obtain the data from the form

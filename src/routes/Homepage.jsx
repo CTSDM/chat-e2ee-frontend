@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewMessages from "../components/PreviewMessages.jsx";
 import ChatRoom from "../components/ChatRoom.jsx";
@@ -6,30 +6,113 @@ import ButtonDialog from "../components/ButtonDialog.jsx";
 import { Context } from "./utils/globalStateContext.js";
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
-import routes from "../routes.jsx";
-import styles from "./Homepage.module.css";
 import { cryptoUtils } from "../utils/utils.js";
+import ws from "../websocket/ws.js";
+import routes from "../routes.jsx";
+import { v4 as uuidv4 } from "uuid";
+import styles from "./Homepage.module.css";
+import dataManipulation from "../utils/dataManipulation.js";
 
 function Homepage() {
-    const { isLogged, privateKey, contactList, setContactList } = useContext(Context);
+    const {
+        publicUsername,
+        isLogged,
+        privateKey,
+        contactList,
+        setContactList,
+        chatMessages,
+        setChatMessages,
+    } = useContext(Context);
 
-    if (isLogged === false || privateKey === null) {
-        routes.navigate("/login");
-    }
+    useEffect(() => {
+        if (ws.getSocket() === null && isLogged) {
+            ws.start(publicUsername, privateKey, contactList, setContactList, setChatMessages);
+        }
+        // for now we empty the message array when a new connection is established
+    }, [publicUsername, privateKey, contactList, setContactList, setChatMessages, isLogged]);
+    const [currentTarget, setCurrentTarget] = useState(null);
 
-    async function handleUpdatePublicKeys(publicUsername) {
+    async function handleNewConnection(publicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
-        const response = await requests.getPublicKey({ publicUsername });
+        const response = await requests.getPublicKey(publicUsername);
         if (response.status === 200) {
-            const publicKeyJWT = JSON.parse(response.publicKey);
-            const publicKey = await cryptoUtils.importKey(publicKeyJWT, ["encrypt"]);
+            const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
+            const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
+            const publicKey = await cryptoUtils.importKey(
+                publicKeyJWK,
+                { name: "RSA-OAEP", hash: "SHA-256" },
+                ["encrypt"],
+            );
             setContactList((contactInfo) => {
-                return { ...contactInfo, [publicUsername]: publicKey };
+                return { [publicUsername]: publicKey, ...contactInfo };
             });
+            setCurrentTarget(publicUsername);
+            // we tell the server through the ws to pair the connection to the desired user
+            // since this is only used for sending messages and not receiving it
+            // Thus, there is not a problem to wait for the API  to respond.
+            ws.setup(publicUsername);
+            // we load the chatroom
+            // we should receive the messages
+            if (chatMessages[publicUsername] === undefined) {
+                setChatMessages((chatMessages) => {
+                    return { ...chatMessages, [publicUsername]: [] };
+                });
+            }
         }
     }
 
+    function previewOnClick(name) {
+        // order contactList...
+        // the above function to order the list will be the same for when a new connection is opened
+        // load the messages on the chat room
+        // send the message object (if any to the name)
+        // how will the messages object be stored?
+        // the messages should be a global variable, since we dont want to fetch the messages all the time
+        // hmmmm, not so sure if we should do this
+        // in any case the structure will be
+        // {receiver, sender, content, time}
+        // we will fetch the data using websockets
+        setCurrentTarget(name);
+        ws.setup(name);
+    }
+
+    async function handleSubmitMessage(message) {
+        const messageEncrypted = await cryptoUtils.getEncryptedMessage(
+            contactList[currentTarget],
+            {
+                name: "RSA-OAEP",
+                hash: "SHA-256",
+            },
+            message,
+        );
+        setContactList((contactInfo) => {
+            return { [currentTarget]: contactInfo[currentTarget], ...contactInfo };
+        });
+        ws.sendMessage(messageEncrypted);
+        setChatMessages((messages) => {
+            const arrOriginal = messages[currentTarget];
+            return {
+                ...messages,
+                [currentTarget]: [
+                    ...arrOriginal,
+                    {
+                        id: uuidv4(),
+                        author: publicUsername,
+                        content: message,
+                        createdAt: new Date(),
+                    },
+                ],
+            };
+        });
+    }
+
+    if (isLogged === false || privateKey === null) {
+        routes.navigate("/login");
+        return;
+    }
+
     const contactNames = Object.keys(contactList);
+    const chatRoomMessages = getCurrentMessages(currentTarget, chatMessages);
 
     return (
         <div className={styles.container}>
@@ -37,20 +120,39 @@ function Homepage() {
                 <ButtonDialog
                     text={"Add connection"}
                     textModal={"Connect"}
-                    onSubmit={handleUpdatePublicKeys}
+                    onSubmit={handleNewConnection}
                     input={env.inputs.signup[1]}
                 />
                 <SearchMessages />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
-                {contactNames.map((contact) => (
-                    <PreviewMessages key={contact} name={contact} />
-                ))}
+                {contactNames.map((contact) => {
+                    let message = undefined;
+                    if (chatMessages[contact] && chatMessages[contact].length > 0) {
+                        message = chatMessages[contact].at(-1).content;
+                    }
+                    return (
+                        <PreviewMessages
+                            key={contact}
+                            name={contact}
+                            message={message}
+                            handleOnClick={previewOnClick}
+                        />
+                    );
+                })}
             </div>
             <div className={styles.rightSide}>
-                <ChatRoom />
+                <ChatRoom
+                    messages={chatRoomMessages}
+                    handleOnSubmit={handleSubmitMessage}
+                    username={publicUsername}
+                />
             </div>
         </div>
     );
+}
+
+function getCurrentMessages(target, allMessages) {
+    return allMessages[target];
 }
 
 export default Homepage;

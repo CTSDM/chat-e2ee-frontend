@@ -5,7 +5,9 @@ import requests from "../utils/requests.js";
 import { Context } from "./utils/globalStateContext.js";
 import NavigationBar from "../components/NavigationBar.jsx";
 import { env } from "../../config/config.js";
-import { userUtils } from "../utils/utils.js";
+import { dataManipulationUtils as dataManipulation, userUtils } from "../utils/utils.js";
+import routes from "../routes.jsx";
+import { cryptoUtils } from "../utils/utils.js";
 import styles from "./Root.module.css";
 
 function GlobalContextProvider() {
@@ -15,6 +17,8 @@ function GlobalContextProvider() {
     const [publicUsername, setPublicUsername] = useState(null);
     const [contactList, setContactList] = useState({});
     const [privateKey, setPrivateKey] = useState(null);
+    const [publicKey, setPublicKey] = useState(null);
+    const [chatMessages, setChatMessages] = useState({});
     const message = useRef();
     const userVars = useRef({});
 
@@ -29,9 +33,26 @@ function GlobalContextProvider() {
                     await sleep(env.dev.delay);
                 }
                 if (response.status === 200) {
+                    // all this code is repeated also in login when we do a post
+                    // we should encapsulate all this code into its own function
+                    // i think so
                     setIsLogged(true);
                     setPrivateUsername(response.privateUsername);
                     setPublicUsername(response.publicUsername);
+                    (async () => {
+                        const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(
+                            response.publicKey,
+                        );
+                        const publicKeyJWK = JSON.parse(
+                            dataManipulation.Uint8ArrayToStr(publicKeyJWKArr),
+                        );
+                        const publicKey = await cryptoUtils.importKey(
+                            publicKeyJWK,
+                            { name: "RSA-OAEP", hash: "SHA-256" },
+                            ["encrypt"],
+                        );
+                        setPublicKey(publicKey);
+                    })();
                     userUtils.updateOneTimeVariables(userVars, response);
                 } else {
                     setIsLogged(false);
@@ -48,6 +69,13 @@ function GlobalContextProvider() {
         };
     }, []);
 
+    useEffect(() => {
+        if (isLogged === false || privateKey === null) {
+            routes.navigate("/login");
+            return;
+        }
+    }, [isLogged, privateKey]);
+
     return (
         <Context.Provider
             value={{
@@ -59,10 +87,14 @@ function GlobalContextProvider() {
                 setPublicUsername,
                 privateKey,
                 setPrivateKey,
+                publicKey,
+                setPublicKey,
                 contactList,
                 setContactList,
                 userVars,
                 message,
+                chatMessages,
+                setChatMessages,
             }}
         >
             {isLoading ? (
@@ -72,9 +104,7 @@ function GlobalContextProvider() {
                     <header>
                         <NavigationBar isLogged={isLogged} publicUsername={publicUsername} />
                     </header>
-                    <div className={styles.container}>
-                        <Outlet />
-                    </div>
+                    <Outlet />
                 </div>
             )}
         </Context.Provider>

@@ -9,14 +9,30 @@ function objToArrBuffer(obj) {
     return arrUint8.buffer;
 }
 
-function stringToArrBuffer(str) {
+function stringToUint8Array(str) {
     const enc = new TextEncoder();
     const arrUint8 = enc.encode(str);
-    return arrUint8.buffer;
+    return arrUint8;
+}
+
+function stringToArrBuffer(str) {
+    return stringToUint8Array(str).buffer;
+}
+
+function ArrBufferToString(arrBuffer) {
+    const arr = new Uint8Array(arrBuffer);
+    const strEncodedArr = arr.filter((value) => value !== 0);
+    const dec = new TextDecoder();
+    const str = dec.decode(strEncodedArr);
+    return str;
 }
 
 function ArrBufferToJSON(arrBuffer) {
     return JSON.stringify(Array.from(new Uint8Array(arrBuffer)));
+}
+
+function Uint8ArrayToJSON(arr) {
+    return JSON.stringify(Array.from(arr));
 }
 
 function UintArrToJson(arr8) {
@@ -49,6 +65,11 @@ function hexStringToUint8Array(hex) {
     return byteArray;
 }
 
+function Uint8ArrayToStr(arr) {
+    const dec = new TextDecoder();
+    return dec.decode(arr);
+}
+
 export default {
     getLengthArrofArr,
     ArrBufferToJSON,
@@ -59,4 +80,8 @@ export default {
     objToArrBuffer,
     hexStringToUint8Array,
     stringToArrBuffer,
+    ArrBufferToString,
+    stringToUint8Array,
+    Uint8ArrayToJSON,
+    Uint8ArrayToStr,
 };

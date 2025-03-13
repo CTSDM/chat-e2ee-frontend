@@ -9,35 +9,32 @@ async function getKeyMaterial(password) {
     ]);
 }
 
-async function deriveAESkey(keyMaterial, salt) {
+async function deriveAESkey(algorithm, keyMaterial) {
     const key = await window.crypto.subtle.deriveKey(
-        { name: "PBKDF2", salt, iterations: env.crypto.iterations, hash: "SHA-256" },
+        algorithm,
         keyMaterial,
         { name: "AES-GCM", length: 256 },
         true,
         ["encrypt", "decrypt"],
     );
-
     return key;
 }
 
-async function getEncryptionKey(password, salt) {
+async function getEncryptionKey(password, algo) {
     const keyMaterial = await getKeyMaterial(password);
-    return deriveAESkey(keyMaterial, salt);
+    return deriveAESkey(algo, keyMaterial);
 }
 
+// generation of the public and private key
 async function getKeyPair() {
     const keyPair = await window.crypto.subtle.generateKey(
         {
-            name: "RSA-OAEP",
-            modulusLength: 4096,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: "SHA-256",
+            name: "ECDH",
+            namedCurve: "P-256",
         },
         true,
-        ["encrypt", "decrypt"],
+        ["deriveKey", "deriveBits"],
     );
-
     return keyPair;
 }
 
@@ -98,15 +95,48 @@ async function importKey(keyToBeImported, algorithm, options) {
 
 async function importPrivateKeyEncrypted(keyEncrypted, password, salt, iv) {
     const dataArr = dataManipulation.objArrToUint8Arr(keyEncrypted);
-    const key = await getEncryptionKey(password, dataManipulation.objArrToUint8Arr(salt));
-    const ivArr = dataManipulation.objArrToUint8Arr(iv);
+    const algo = {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: env.crypto.iterations,
+        hash: "SHA-256",
+    };
+    const key = await getEncryptionKey(password, algo);
     const privateKeyJWK = JSON.parse(
-        await getDecryptedMessage(key, { name: "AES-GCM", iv: ivArr }, dataArr),
+        await getDecryptedMessage(key, { name: "AES-GCM", iv: iv }, dataArr),
     );
-    const privateKey = await importKey(privateKeyJWK, { name: "RSA-OAEP", hash: "SHA-256" }, [
-        "decrypt",
+    const privateKey = await importKey(privateKeyJWK, { name: "ECDH", namedCurve: "P-256" }, [
+        "deriveKey",
+        "deriveBits",
     ]);
     return privateKey;
+}
+
+async function deriveSecretKey(privateKey, publicKey) {
+    const secret = await window.crypto.subtle.deriveBits(
+        {
+            name: "ECDH",
+            public: publicKey,
+        },
+        privateKey,
+        256,
+    );
+
+    return await window.crypto.subtle.importKey("raw", secret, { name: "HKDF" }, false, [
+        "deriveKey",
+    ]);
+}
+
+async function getSymmetricKey(publicKey, selfPrivateKey, salt) {
+    const sharedSecret = await deriveSecretKey(selfPrivateKey, publicKey);
+    const algo = {
+        name: "HKDF",
+        hash: "SHA-256",
+        info: new TextEncoder().encode("lamba theta omega sigma delta"),
+        salt,
+    };
+    const key = await deriveAESkey(algo, sharedSecret);
+    return key;
 }
 
 export default {
@@ -117,4 +147,5 @@ export default {
     importKey,
     importPrivateKeyEncrypted,
     getEncryptedMessage,
+    getSymmetricKey,
 };

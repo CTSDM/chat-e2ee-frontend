@@ -22,29 +22,50 @@ function Homepage() {
         setContactList,
         chatMessages,
         setChatMessages,
+        userVars,
     } = useContext(Context);
 
     useEffect(() => {
         if (ws.getSocket() === null && isLogged) {
-            ws.start(publicUsername, privateKey, contactList, setContactList, setChatMessages);
+            ws.start(
+                publicUsername,
+                privateKey,
+                contactList,
+                setContactList,
+                setChatMessages,
+                userVars,
+            );
         }
         // for now we empty the message array when a new connection is established
-    }, [publicUsername, privateKey, contactList, setContactList, setChatMessages, isLogged]);
+    }, [
+        publicUsername,
+        privateKey,
+        contactList,
+        setContactList,
+        setChatMessages,
+        isLogged,
+        userVars,
+    ]);
     const [currentTarget, setCurrentTarget] = useState(null);
 
     async function handleNewConnection(publicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
         const response = await requests.getPublicKey(publicUsername);
+        const salt = dataManipulation.xorArray(
+            userVars.current.salt,
+            dataManipulation.objArrToUint8Arr(response.salt),
+        );
         if (response.status === 200) {
             const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
             const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
-            const publicKey = await cryptoUtils.importKey(
+            const otherPublicKey = await cryptoUtils.importKey(
                 publicKeyJWK,
-                { name: "RSA-OAEP", hash: "SHA-256" },
-                ["encrypt"],
+                { name: "ECDH", namedCurve: "P-256" },
+                [],
             );
+            const sharedKey = await cryptoUtils.getSymmetricKey(otherPublicKey, privateKey, salt);
             setContactList((contactInfo) => {
-                return { [publicUsername]: publicKey, ...contactInfo };
+                return { [publicUsername]: sharedKey, ...contactInfo };
             });
             setCurrentTarget(publicUsername);
             // we tell the server through the ws to pair the connection to the desired user
@@ -77,18 +98,19 @@ function Homepage() {
     }
 
     async function handleSubmitMessage(message) {
+        const iv = new Uint8Array(12);
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
             contactList[currentTarget],
             {
-                name: "RSA-OAEP",
-                hash: "SHA-256",
+                name: "AES-GCM",
+                iv,
             },
             message,
         );
         setContactList((contactInfo) => {
             return { [currentTarget]: contactInfo[currentTarget], ...contactInfo };
         });
-        ws.sendMessage(messageEncrypted);
+        ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, messageEncrypted]));
         setChatMessages((messages) => {
             const arrOriginal = messages[currentTarget];
             return {

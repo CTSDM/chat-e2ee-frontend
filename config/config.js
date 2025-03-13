@@ -81,7 +81,7 @@ const env = {
         delay: import.meta.env.VITE_DELAY,
     },
     crypto: {
-        iterations: import.meta.env.VITE_CRYPTO_ITERATIONS,
+        iterations: 250000,
     },
     test: {
         privateKeyEncrypted: import.meta.env.VITE_TEST_PRIVATE_KEY_ENCRYPTED,

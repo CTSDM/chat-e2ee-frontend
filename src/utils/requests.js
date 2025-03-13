@@ -61,7 +61,7 @@ async function getPublicKey(user) {
     });
     if (response.ok) {
         const json = await response.json();
-        return { status: response.status, publicKey: json.publicKey };
+        return { status: response.status, publicKey: json.publicKey, salt: json.salt };
     } else if (response.status === 400) {
         const json = await response.json();
         return { status: response.status, errMsg: json.errMsg };

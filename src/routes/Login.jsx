@@ -50,8 +50,8 @@ export default function Login() {
                     );
                     const publicKey = await cryptoUtils.importKey(
                         publicKeyJWK,
-                        { name: "RSA-OAEP", hash: "SHA-256" },
-                        ["encrypt"],
+                        { name: "ECDH", namedCurve: "P-256" },
+                        [],
                     );
                     setPublicKey(publicKey);
                 })();

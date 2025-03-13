@@ -70,7 +70,36 @@ function Uint8ArrayToStr(arr) {
     return dec.decode(arr);
 }
 
+function xorArray(arr1, arr2) {
+    const newArr = [];
+    for (let i = 0; i < arr1.length; ++i) {
+        newArr.push(arr1[i] ^ arr2[i]);
+    }
+    return new Uint8Array(newArr);
+}
+
+function addByteFlag(buff, flag) {
+    return new Uint8Array([flag, ...new Uint8Array(buff)]).buffer;
+}
+
+function getNumFromBuffer(buff) {
+    // the buffer is considered to be 1 byte
+    const view = new DataView(buff);
+    return view.getUint8(0);
+}
+
+function groupBuffers(buffArr) {
+    const arr = [];
+    for (let i = 0; i < buffArr.length; ++i) {
+        arr.push(...new Uint8Array(buffArr[i]));
+    }
+    return new Uint8Array(arr).buffer;
+}
+
 export default {
+    groupBuffers,
+    getNumFromBuffer,
+    addByteFlag,
     getLengthArrofArr,
     ArrBufferToJSON,
     UintArrToJson,
@@ -84,4 +113,5 @@ export default {
     stringToUint8Array,
     Uint8ArrayToJSON,
     Uint8ArrayToStr,
+    xorArray,
 };

@@ -18,7 +18,13 @@ const actionSignup = async ({ request }) => {
     const keyPassword = data.get("keyPassword");
     const salt = cryptoUtils.getRandomValues(16);
     const iv = cryptoUtils.getRandomValues(12);
-    const encryptionKey = await cryptoUtils.getEncryptionKey(keyPassword, salt);
+    const algo = {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: env.crypto.iterations,
+        hash: "SHA-256",
+    };
+    const encryptionKey = await cryptoUtils.getEncryptionKey(keyPassword, algo);
     const [publicKey, privateKeyEncrypted] = await cryptoUtils.getKeyPairPrivateEncrypted(
         encryptionKey,
         iv,

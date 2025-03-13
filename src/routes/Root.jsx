@@ -18,6 +18,7 @@ function GlobalContextProvider() {
     const [contactList, setContactList] = useState({});
     const [privateKey, setPrivateKey] = useState(null);
     const [publicKey, setPublicKey] = useState(null);
+    const [symmetricKey, setSymmetricKey] = useState(null);
     const [chatMessages, setChatMessages] = useState({});
     const message = useRef();
     const userVars = useRef({});
@@ -48,8 +49,8 @@ function GlobalContextProvider() {
                         );
                         const publicKey = await cryptoUtils.importKey(
                             publicKeyJWK,
-                            { name: "RSA-OAEP", hash: "SHA-256" },
-                            ["encrypt"],
+                            { name: "ECDH", namedCurve: "P-256" },
+                            [],
                         );
                         setPublicKey(publicKey);
                     })();
@@ -95,6 +96,8 @@ function GlobalContextProvider() {
                 message,
                 chatMessages,
                 setChatMessages,
+                symmetricKey,
+                setSymmetricKey,
             }}
         >
             {isLoading ? (

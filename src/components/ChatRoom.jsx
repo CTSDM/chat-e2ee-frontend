@@ -4,10 +4,10 @@ import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
 
-function ChatRoom({ messages, handleOnSubmit, username }) {
+function ChatRoom({ messages, handleOnSubmit, username, targetContact }) {
     const input = env.inputs.message;
     if (!messages) {
-        return <div>{"No messages yet..."}</div>;
+        return <div></div>;
     }
 
     function handleSubmit(e) {
@@ -23,6 +23,7 @@ function ChatRoom({ messages, handleOnSubmit, username }) {
 
     return (
         <div className={styles.container}>
+            <div className={styles.contact}>{targetContact}</div>
             <div className={styles.messagesContainer}>
                 {messages.map((message) => (
                     <MessageBubble
@@ -42,6 +43,7 @@ function ChatRoom({ messages, handleOnSubmit, username }) {
 }
 
 ChatRoom.propTypes = {
+    targetContact: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     messages: PropTypes.arrayOf(
         PropTypes.shape({

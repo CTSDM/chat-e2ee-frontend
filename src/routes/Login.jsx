@@ -39,7 +39,7 @@ export default function Login() {
         }
         if (response) {
             if (response.status === 200) {
-                setInfo("APE IS IN");
+                setInfo("The authentication was successful.");
                 setIsLogged(true);
                 setPrivateUsername(response.privateUsername);
                 setPublicUsername(response.publicUsername);
@@ -57,11 +57,12 @@ export default function Login() {
                 })();
                 userUtils.updateOneTimeVariables(userVars, response);
                 return;
-            } else {
-                setInfo("YOU NOT APE");
+            } else if (response.status) {
+                setInfo("The authentication was not successful. Wrong password or username");
                 setIsLogged(false);
-                redirect("/login");
                 return;
+            } else {
+                setInfo(response.message);
             }
         }
     }, [response, privateKey, isLogged]);

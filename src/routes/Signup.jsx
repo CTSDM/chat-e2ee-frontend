@@ -21,23 +21,29 @@ export default function Signup() {
         }
         if (response && response.status) {
             if (response.status === 200) {
-                setInfo("WELCOME TO THE JUNGLE, NEW APE!");
+                setInfo("Success");
                 refMessage.current = "You have successfully created an account";
                 navigate("/login");
                 return;
-            } else if (response.status >= 400) {
-                setInfo("SOMETHING WENT WRONT, CANNOT REGISTER APE");
+            } else if (response.status >= 400 && response.status < 500) {
+                setInfo("Something went wrong with your form, please correct the errors.");
                 setIsLogged(false);
                 return;
             }
         }
     }, [response, navigate, refMessage, setIsLogged]);
 
+    useEffect(() => {
+        const errCount = dataManipulation.getLengthArrofArr(msgArr);
+        if (errCount === 0) {
+            setInfo(null);
+        }
+    }, [msgArr]);
+
     function handleSubmit(e) {
-        let errCount = 0;
-        errCount = errCount + dataManipulation.getLengthArrofArr(msgArr);
+        const errCount = dataManipulation.getLengthArrofArr(msgArr);
         if (errCount > 0) {
-            setInfo("THE FORM IS BEING VALIDATED ON THE FRONT END SIDE");
+            setInfo("The following errors where found while validating the data on the front-end");
             e.preventDefault();
         }
     }
@@ -58,9 +64,7 @@ export default function Signup() {
                         </div>
                         <div>
                             The password must have between {env.validation.users.password.minLength}{" "}
-                            and {env.validation.users.password.maxLength} characters. It must
-                            include at least one upper case letter, one lower case letter, one
-                            number and one special symbol.
+                            and {env.validation.users.password.maxLength} characters.
                         </div>
                     </div>
                     {info ? (

@@ -1,3 +1,44 @@
 .container {
-  background: blue;
+  background: #17212b;
+}
+
+.container>div {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.container:focus {
+  outline: none;
+}
+
+.container:hover:not(.selected) {
+  background: #202b36;
+}
+
+button.container {
+  border-radius: 0;
+  width: 100%;
+  display: grid;
+}
+
+button.container>div {
+  margin-right: auto;
+}
+
+.other {
+  color: White;
+  font-weight: 700;
+}
+
+.self {
+  color: #73b9f5;
+}
+
+.selected {
+  background-color: #2b5278;
+}
+
+.text {
+  color: #7f91a4;
 }

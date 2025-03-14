@@ -8,7 +8,6 @@
 
 .rightSide,
 .leftSide {
-  border: 2px red solid;
   overflow: hidden;
 }
 
@@ -16,4 +15,5 @@
   display: grid;
   height: 100%;
   background-color: #0E1621;
+  border-left: 1px solid black;
 }

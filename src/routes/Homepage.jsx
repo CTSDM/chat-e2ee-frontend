@@ -83,16 +83,8 @@ function Homepage() {
     }
 
     function previewOnClick(name) {
-        // order contactList...
-        // the above function to order the list will be the same for when a new connection is opened
-        // load the messages on the chat room
-        // send the message object (if any to the name)
-        // how will the messages object be stored?
-        // the messages should be a global variable, since we dont want to fetch the messages all the time
-        // hmmmm, not so sure if we should do this
-        // in any case the structure will be
-        // {receiver, sender, content, time}
-        // we will fetch the data using websockets
+        // we change the current target, and thus the shown messages will change
+        // the chat will be ready to send messages to that contact
         setCurrentTarget(name);
         ws.setup(name);
     }
@@ -129,8 +121,7 @@ function Homepage() {
     }
 
     if (isLogged === false || privateKey === null) {
-        routes.navigate("/login");
-        return;
+        return routes.navigate("/login");
     }
 
     const contactNames = Object.keys(contactList);
@@ -150,13 +141,15 @@ function Homepage() {
                 {contactNames.map((contact) => {
                     let message = undefined;
                     if (chatMessages[contact] && chatMessages[contact].length > 0) {
-                        message = chatMessages[contact].at(-1).content;
+                        message = chatMessages[contact].at(-1);
                     }
                     return (
                         <PreviewMessages
                             key={contact}
-                            name={contact}
+                            contact={contact}
+                            username={publicUsername}
                             message={message}
+                            target={currentTarget}
                             handleOnClick={previewOnClick}
                         />
                     );
@@ -164,6 +157,7 @@ function Homepage() {
             </div>
             <div className={styles.rightSide}>
                 <ChatRoom
+                    targetContact={currentTarget}
                     messages={chatRoomMessages}
                     handleOnSubmit={handleSubmitMessage}
                     username={publicUsername}

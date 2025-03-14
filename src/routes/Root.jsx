@@ -29,6 +29,10 @@ function GlobalContextProvider() {
             setIsLoading(true);
             try {
                 const response = await requests.getLogin(controller);
+                if (response === undefined) {
+                    setIsLoading(false);
+                    return;
+                }
 
                 if (env.dev.status) {
                     await sleep(env.dev.delay);

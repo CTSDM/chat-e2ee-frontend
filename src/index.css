@@ -11,7 +11,7 @@ input {
 }
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -40,7 +40,6 @@ a:hover {
   gap: 20px;
   height: 100vh;
   overflow-y: auto;
-  max-width: 1100px;
   margin: 0 auto;
   background-color: #17212B;
 }

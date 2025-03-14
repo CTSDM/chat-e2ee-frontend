@@ -30,7 +30,7 @@ function Logout() {
         return () => {
             controller.abort("Cancelled because of React StrictMode it gets called twice.");
         };
-    }, [setIsLogged, setPrivateUsername, setPublicUsername]);
+    }, [setIsLogged, setPrivateUsername, setPublicUsername, setPrivateKey]);
 
     return;
 }

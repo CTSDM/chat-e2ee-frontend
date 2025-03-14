@@ -12,10 +12,10 @@ const username = validEntries.messages.username;
 window.HTMLElement.prototype.scrollIntoView = vi.fn;
 
 describe("The component ", () => {
-    it("should be rendered with some message when the message array is null.", () => {
+    it("should not render anything when the message is null", () => {
         render(<ChatRoom messages={null} handleOnSubmit={() => {}} username={username} />);
-        const div = screen.getByText("No messages yet...");
-        expect(div).toBeInTheDocument();
+        const div = screen.queryByText(/\*/);
+        expect(div).not.toBeInTheDocument();
     });
 
     it("should be rendered with an input text when the conversation starts.", () => {

@@ -22,6 +22,7 @@ function GlobalContextProvider() {
     const [chatMessages, setChatMessages] = useState({});
     const message = useRef();
     const userVars = useRef({});
+    const isError = useRef(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -76,8 +77,10 @@ function GlobalContextProvider() {
 
     useEffect(() => {
         if (isLogged === false || privateKey === null) {
-            routes.navigate("/login");
-            return;
+            if (isError.current === false) {
+                routes.navigate("/login");
+                return;
+            }
         }
     }, [isLogged, privateKey]);
 
@@ -102,6 +105,7 @@ function GlobalContextProvider() {
                 setChatMessages,
                 symmetricKey,
                 setSymmetricKey,
+                isError,
             }}
         >
             {isLoading ? (

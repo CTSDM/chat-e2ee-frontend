@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewMessages from "../components/PreviewMessages.jsx";
 import ChatRoom from "../components/ChatRoom.jsx";
@@ -10,8 +10,8 @@ import { cryptoUtils } from "../utils/utils.js";
 import ws from "../websocket/ws.js";
 import routes from "../routes.jsx";
 import { v4 as uuidv4 } from "uuid";
-import styles from "./Homepage.module.css";
 import dataManipulation from "../utils/dataManipulation.js";
+import styles from "./Homepage.module.css";
 
 function Homepage() {
     const {
@@ -24,6 +24,26 @@ function Homepage() {
         setChatMessages,
         userVars,
     } = useContext(Context);
+
+    const [widthSidebar, setWidthSidebar] = useState(400);
+    const isResize = useRef(false);
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isResize.current) {
+                setWidthSidebar((previousWidth) => previousWidth + e.movementX);
+            }
+        };
+        const handleMouseUp = () => {
+            isResize.current = false;
+        };
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, []);
 
     useEffect(() => {
         if (ws.getSocket() === null && isLogged) {
@@ -129,7 +149,7 @@ function Homepage() {
 
     return (
         <div className={styles.container}>
-            <div className={styles.leftSide}>
+            <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
                 <ButtonDialog
                     text={"Add connection"}
                     textModal={"Connect"}
@@ -155,6 +175,10 @@ function Homepage() {
                     );
                 })}
             </div>
+            <div
+                className={styles.resizeHandler}
+                onMouseDown={() => (isResize.current = true)}
+            ></div>
             <div className={styles.rightSide}>
                 <ChatRoom
                     targetContact={currentTarget}

@@ -1,8 +1,5 @@
 .container {
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 5px;
-  min-height: 400px;
+  display: flex;
   overflow: hidden;
 }
 
@@ -15,5 +12,15 @@
   display: grid;
   height: 100%;
   background-color: #0E1621;
-  border-left: 1px solid black;
+  flex-grow: 1;
+}
+
+.resizeHandler {
+  width: 10px;
+  background-color: black;
+  user-select: none;
+}
+
+.resizeHandler:hover {
+  cursor: ew-resize;
 }

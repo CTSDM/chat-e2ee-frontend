@@ -43,7 +43,7 @@ function ChatRoom({ messages, handleOnSubmit, username, targetContact }) {
 }
 
 ChatRoom.propTypes = {
-    targetContact: PropTypes.string.isRequired,
+    targetContact: PropTypes.string,
     username: PropTypes.string.isRequired,
     messages: PropTypes.arrayOf(
         PropTypes.shape({

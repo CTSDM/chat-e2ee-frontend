@@ -3,14 +3,9 @@
   border-radius: 2px;
   display: flex;
   flex-direction: column;
-  padding: 4px 7px;
+  padding: 4px 7px 1px 10px;
   border-radius: 20px;
   max-width: 500px;
-}
-
-.time {
-  margin-left: auto;
-  font-size: 0.75rem;
 }
 
 .content {
@@ -79,4 +74,17 @@
 .panson {
   height: 0;
   position: relative;
+}
+
+.info {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  font-size: 0.75rem;
+  margin-left: auto;
+}
+
+.info>img {
+  position: relative;
+  bottom: 3px;
 }

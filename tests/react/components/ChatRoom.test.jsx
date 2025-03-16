@@ -19,13 +19,27 @@ describe("The component ", () => {
     });
 
     it("should be rendered with an input text when the conversation starts.", () => {
-        render(<ChatRoom messages={[]} handleOnSubmit={() => {}} username={username} />);
+        render(
+            <ChatRoom
+                messages={[]}
+                handleOnSubmit={() => {}}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         const form = screen.getByRole("form");
         expect(form).toBeInTheDocument();
     });
 
     it("should render the messages with a valid messages array.", () => {
-        render(<ChatRoom messages={messages} handleOnSubmit={() => {}} username={username} />);
+        render(
+            <ChatRoom
+                messages={messages}
+                handleOnSubmit={() => {}}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         messages.forEach((message) => {
             expect(screen.getByText(message.content)).toBeInTheDocument();
             const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
@@ -36,7 +50,14 @@ describe("The component ", () => {
     it("should call the handler function when a message is sent.", async () => {
         const handleOnSubmit = vi.fn();
         const user = userEvent.setup();
-        render(<ChatRoom messages={[]} handleOnSubmit={handleOnSubmit} username={username} />);
+        render(
+            <ChatRoom
+                messages={[]}
+                handleOnSubmit={handleOnSubmit}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         const inputText = screen.getByRole("textbox");
         await user.type(inputText, "test");
         const button = screen.getByRole("button");
@@ -47,14 +68,28 @@ describe("The component ", () => {
     it("should NOT call the handler function when an empty message is sent.", async () => {
         const handleOnSubmit = vi.fn();
         const user = userEvent.setup();
-        render(<ChatRoom messages={[]} handleOnSubmit={handleOnSubmit} username={username} />);
+        render(
+            <ChatRoom
+                messages={[]}
+                handleOnSubmit={handleOnSubmit}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         const button = screen.getByRole("button");
         await user.click(button);
         expect(handleOnSubmit).not.toHaveBeenCalled();
     });
 
     it("the messages sent/received by the user should have their respective classes.", () => {
-        render(<ChatRoom messages={messages} handleOnSubmit={() => {}} username={username} />);
+        render(
+            <ChatRoom
+                messages={messages}
+                handleOnSubmit={() => {}}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         messages.forEach((message) => {
             const div = screen.getByText(message.content);
             const container = div.parentNode;

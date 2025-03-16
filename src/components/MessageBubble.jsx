@@ -1,9 +1,11 @@
 import PropTypes from "prop-types";
 import { dataManipulationUtils as dataManipulation } from "../utils/utils";
 import { useEffect, useRef } from "react";
+import notReadImg from "../assets/notRead.svg";
+import readImg from "../assets/read.svg";
 import styles from "./MessageBubble.module.css";
 
-export default function MessageBubble({ message, author, username, date }) {
+export default function MessageBubble({ message, author, username, date, isRead }) {
     const messageRef = useRef(null);
     const dateFormatted = dataManipulation.getDateFormatted(date);
     let content;
@@ -22,11 +24,19 @@ export default function MessageBubble({ message, author, username, date }) {
         messageRef.current.scrollIntoView();
     }, []);
 
+    const readStatusObj = {
+        src: isRead ? readImg : notReadImg,
+        alt: isRead ? "read" : "not yet read",
+    };
+
     return (
         <div className={styles.container} ref={messageRef}>
             <div className={classMessage}>
                 <div className={styles.content}>{content}</div>
-                <div className={styles.time}>{dateFormatted}</div>
+                <div className={styles.info}>
+                    <div className={styles.time}>{dateFormatted}</div>
+                    <img src={readStatusObj.src} alt={readStatusObj.alt} />
+                </div>
             </div>
             {isAuthSender ? null : (
                 <div className={`${styles.panson} ${styles.receiver}`}>
@@ -48,5 +58,7 @@ MessageBubble.propTypes = {
     date: PropTypes.object.isRequired,
     username: PropTypes.string.isRequired,
     author: PropTypes.string.isRequired,
+    isRead: PropTypes.bool.isRequired,
+    // In case the message is an image we check if the message is an object.
     message: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
 };

@@ -39,7 +39,7 @@ function PreviewMessages({ contact, target, username, message, handleOnClick }) 
 }
 
 PreviewMessages.propTypes = {
-    target: PropTypes.string.isRequired,
+    target: PropTypes.string,
     contact: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     message: PropTypes.shape({

@@ -3,9 +3,19 @@ import FormSimple from "./FormSimple.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
+import { useEffect, useRef } from "react";
 
-function ChatRoom({ messages, handleOnSubmit, username, targetContact }) {
+function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetContact }) {
     const input = env.inputs.message;
+    const messagesLength = useRef(0);
+
+    useEffect(() => {
+        if (messages && messagesLength.current !== messages.length) {
+            messagesLength.current = messages.length;
+            handleOnRender(messages);
+        }
+    }, [handleOnRender, messages]);
+
     if (!messages) {
         return <div></div>;
     }
@@ -31,6 +41,7 @@ function ChatRoom({ messages, handleOnSubmit, username, targetContact }) {
                         message={message.content}
                         author={message.author}
                         date={message.createdAt}
+                        isRead={message.read}
                         username={username}
                     />
                 ))}
@@ -51,9 +62,11 @@ ChatRoom.propTypes = {
             author: PropTypes.string.isRequired,
             content: PropTypes.string.isRequired,
             createdAt: PropTypes.object.isRequired,
+            read: PropTypes.bool.isRequired,
         }),
     ),
     handleOnSubmit: PropTypes.func.isRequired,
+    handleOnRender: PropTypes.func.isRequired,
 };
 
 export default ChatRoom;

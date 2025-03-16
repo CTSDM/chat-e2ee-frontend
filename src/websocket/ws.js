@@ -1,9 +1,6 @@
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
-import {
-    dataManipulationUtils as dataManipulation,
-    dataManipulationUtils,
-} from "../utils/utils.js";
+import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
 import { cryptoUtils } from "../utils/utils.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -44,14 +41,16 @@ function start(
     socket.addEventListener("message", async (event) => {
         // the server will always send an array buffer
         let codeMessage;
+        let offset = 0;
         const tempData = event.data;
         if (tempData.byteLength === 2) {
             codeMessage = 0;
         } else {
             codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
+            ++offset;
         }
-        const codeStatus = new Uint16Array(tempData.slice(codeMessage, 2 + codeMessage))[0];
-        if (codeStatus === 200 && codeMessage === 1) {
+        const codeStatus = new Uint16Array(tempData.slice(offset, 2 + offset))[0];
+        if (codeStatus === 200 && codeMessage >= 1) {
             const data = event.data.slice(1);
             // 16 first bytes for the user
             // the next 512 bytes for the message
@@ -72,10 +71,7 @@ function start(
                 // we can do this synchronously // it shouldnt take that much time either way
                 // or we do it async and just calculate it in the background
                 const response = await requests.getPublicKey(username);
-                const commonSalt = dataManipulationUtils.xorArray(
-                    userVars.current.salt,
-                    response.salt,
-                );
+                const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
                 const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                 const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
                 const publicKey = await cryptoUtils.importKey(
@@ -95,31 +91,52 @@ function start(
             }
             // we need to decrypt now!
             const ivBuffer = data.slice(18, 30);
-            const message = await cryptoUtils.getDecryptedMessage(
+            const messageDecrypted = await cryptoUtils.getDecryptedMessage(
                 sharedKey,
                 { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
                 data.slice(30),
             );
-            setChatMessages((messages) => {
-                let arrOriginal;
-                if (!messages[username]) {
-                    arrOriginal = [];
-                } else {
-                    arrOriginal = messages[username];
-                }
-                return {
-                    ...messages,
-                    [username]: [
-                        ...arrOriginal,
-                        {
-                            id: uuidv4(),
-                            author: username,
-                            content: message,
-                            createdAt: new Date(),
-                        },
-                    ],
-                };
-            });
+            const id = messageDecrypted.slice(0, 36);
+            if (codeMessage === 1) {
+                const message = messageDecrypted.slice(36);
+                setChatMessages((messages) => {
+                    let arrOriginal;
+                    if (!messages[username]) {
+                        arrOriginal = [];
+                    } else {
+                        arrOriginal = messages[username];
+                    }
+                    return {
+                        ...messages,
+                        [username]: [
+                            ...arrOriginal,
+                            {
+                                // the id set by the sender
+                                id: id,
+                                author: username,
+                                content: message,
+                                createdAt: new Date(),
+                                // receiving a message does not mean the message has been read
+                                read: false,
+                            },
+                        ],
+                    };
+                });
+            } else {
+                // we update the read status of our own message
+                setChatMessages((currentMessages) => {
+                    const userMessages = currentMessages[username];
+                    // find the message to update
+                    // to do a faster update, username should be an object with the ids as keys
+                    // since that is not the case I have to deal with what I've beeng given aka I've created
+                    userMessages.forEach((message) => {
+                        if (message.id === id) {
+                            message.read = true;
+                        }
+                    });
+                    return { ...currentMessages, [publicUsername]: userMessages }; // updated messages
+                });
+            }
         } else {
             console.log(getCodeMessage(codeStatus));
         }
@@ -139,10 +156,12 @@ function getCodeMessage(code) {
 }
 
 // this function expects ArrBuffer
-function sendMessage(message) {
+function sendMessage(message, flagByte) {
     // make an assert on what type of data I expect here!
-    // we add a byte 1 at the beginning to show that it is regular message
-    socket.send(dataManipulation.addByteFlag(message, 1));
+    // flagbyte = 1: regular message; 2: acknowledge read
+    // each sent message should also have an id
+    // the id is encoded nex to the message
+    socket.send(dataManipulation.addByteFlag(message, flagByte));
 }
 
 function getSocket() {

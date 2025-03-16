@@ -106,23 +106,28 @@ function Homepage() {
         // we change the current target, and thus the shown messages will change
         // the chat will be ready to send messages to that contact
         setCurrentTarget(name);
+        // the line below is not bueno against offline updates
+        // if the server is not available when setting up the websocket, it could happen that we send messages to another party
+        // due to the nature of the encryption the other party wouldn't be able to read the messages (but nonetheless this is terrible)
         ws.setup(name);
     }
 
     async function handleSubmitMessage(message) {
         const iv = new Uint8Array(12);
+        const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
             contactList[currentTarget],
             {
                 name: "AES-GCM",
                 iv,
             },
-            message,
+            // we encrypt the id and the message together
+            id + message,
         );
         setContactList((contactInfo) => {
             return { [currentTarget]: contactInfo[currentTarget], ...contactInfo };
         });
-        ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, messageEncrypted]));
+        ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, messageEncrypted]), 1);
         setChatMessages((messages) => {
             const arrOriginal = messages[currentTarget];
             return {
@@ -130,13 +135,37 @@ function Homepage() {
                 [currentTarget]: [
                     ...arrOriginal,
                     {
-                        id: uuidv4(),
+                        id: id,
                         author: publicUsername,
                         content: message,
                         createdAt: new Date(),
+                        // the message we sent is by default false
+                        read: false,
                     },
                 ],
             };
+        });
+    }
+
+    function readMessages(messages) {
+        let changeMade = false;
+        messages.forEach(async (message) => {
+            if (message.read === false && message.author === currentTarget) {
+                changeMade = true;
+                const iv = new Uint8Array(12);
+                const idEncrypted = await cryptoUtils.getEncryptedMessage(
+                    contactList[currentTarget],
+                    { name: "AES-GCM", iv },
+                    message.id,
+                );
+                message.read = true;
+                ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, idEncrypted]), 2);
+            }
+            if (changeMade) {
+                setChatMessages((chatMessages) => {
+                    return { ...chatMessages, [currentTarget]: messages };
+                });
+            }
         });
     }
 
@@ -184,6 +213,7 @@ function Homepage() {
                     targetContact={currentTarget}
                     messages={chatRoomMessages}
                     handleOnSubmit={handleSubmitMessage}
+                    handleOnRender={readMessages}
                     username={publicUsername}
                 />
             </div>

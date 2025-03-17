@@ -2,9 +2,12 @@ import PropTypes from "prop-types";
 import InputText from "./InputComp";
 import { validationUtils as validation } from "../utils/utils.js";
 import { Form } from "react-router-dom";
+import { useState } from "react";
 import styles from "./ButtonDialog.module.css";
 
 function ButtonDialog({ text, textModal, input, onSubmit }) {
+    const [msgArray, setMsgArray] = useState([]);
+
     function openDialog() {
         const dialog = document.querySelector("dialog");
         dialog.classList.add(styles.dialogContent);
@@ -21,14 +24,16 @@ function ButtonDialog({ text, textModal, input, onSubmit }) {
 
     function handleSubmit(e) {
         e.preventDefault();
-        const form = e.currentTarget;
-        const formData = new FormData(form);
-        const value = formData.get(input.name);
-        onSubmit(value);
-        const dialog = document.querySelector("dialog");
-        dialog.classList.remove(styles.dialogContent);
-        dialog.close();
-        form.reset();
+        if (msgArray[0].length === 0) {
+            const form = e.currentTarget;
+            const formData = new FormData(form);
+            const value = formData.get(input.name);
+            onSubmit(value);
+            const dialog = document.querySelector("dialog");
+            dialog.classList.remove(styles.dialogContent);
+            dialog.close();
+            form.reset();
+        }
     }
 
     function handleOnCloseDialog(e) {
@@ -51,7 +56,7 @@ function ButtonDialog({ text, textModal, input, onSubmit }) {
                             maxLength={input.maxLength}
                             handleOnChange={validation.curriedHandler(
                                 validation.checkFunctions[input.validation],
-                            )(() => {}, [])}
+                            )(setMsgArray, msgArray)}
                         />
                         <button type="submit">{textModal}</button>
                     </div>

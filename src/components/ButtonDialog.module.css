@@ -11,6 +11,8 @@
 .container dialog {
   position: absolute;
   margin: auto;
+  width: fit-content;
+  height: fit-content;
 }
 
 .dialogContent {

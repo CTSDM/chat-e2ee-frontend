@@ -3,6 +3,7 @@ import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewMessages from "../components/PreviewMessages.jsx";
 import ChatRoom from "../components/ChatRoom.jsx";
 import ButtonDialog from "../components/ButtonDialog.jsx";
+import PopupMessage from "../components/PopupMessage.jsx";
 import { Context } from "./utils/globalStateContext.js";
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
@@ -26,6 +27,7 @@ function Homepage() {
     } = useContext(Context);
 
     const [widthSidebar, setWidthSidebar] = useState(400);
+    const [errMessages, setErrMessages] = useState(null);
     const isResize = useRef(false);
 
     useEffect(() => {
@@ -44,6 +46,11 @@ function Homepage() {
             window.removeEventListener("mouseup", handleMouseUp);
         };
     }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setErrMessages(null), 2000);
+        return () => clearTimeout(timer);
+    }, [errMessages]);
 
     useEffect(() => {
         if (ws.getSocket() === null && isLogged) {
@@ -71,11 +78,11 @@ function Homepage() {
     async function handleNewConnection(publicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
         const response = await requests.getPublicKey(publicUsername);
-        const salt = dataManipulation.xorArray(
-            userVars.current.salt,
-            dataManipulation.objArrToUint8Arr(response.salt),
-        );
         if (response.status === 200) {
+            const salt = dataManipulation.xorArray(
+                userVars.current.salt,
+                dataManipulation.objArrToUint8Arr(response.salt),
+            );
             const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
             const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
             const otherPublicKey = await cryptoUtils.importKey(
@@ -99,6 +106,10 @@ function Homepage() {
                     return { ...chatMessages, [publicUsername]: [] };
                 });
             }
+        } else if (response.status === 404) {
+            setErrMessages("The user requested does not exist.");
+        } else if (response.status === 400) {
+            setErrMessages("The username is not valid.");
         }
     }
 
@@ -178,6 +189,7 @@ function Homepage() {
 
     return (
         <div className={styles.container}>
+            {errMessages ? <PopupMessage message={errMessages} /> : null}
             <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
                 <ButtonDialog
                     text={"Add connection"}

@@ -1,0 +1,11 @@
+.container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  padding: 5px;
+  border: 25%;
+  background: grey;
+  z-index: 99;
+}

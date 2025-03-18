@@ -3,29 +3,26 @@ import { dataManipulationUtils as dataManipulations } from "../src/utils/utils";
 import { v4 as uuidv4 } from "uuid";
 
 const messages = {
-    valid: [
-        {
-            id: uuidv4(),
+    valid: {
+        [uuidv4()]: {
             author: "felix",
             content: "hello there, open the door.",
             createdAt: new Date(0),
             read: false,
         },
-        {
-            id: uuidv4(),
+        [uuidv4()]: {
             author: "lima",
             content: "no, as soon as you enter here you will eat my food.",
             createdAt: new Date(1000 * 60),
             read: true,
         },
-        {
-            id: uuidv4(),
+        [uuidv4()]: {
             author: "felix",
             content: "i'm hungry, open the doooor!",
             createdAt: new Date(1000 * 60 * 2),
             read: false,
         },
-    ],
+    },
     username: "felix",
 };
 

@@ -20,7 +20,6 @@ function Homepage() {
         isLogged,
         privateKey,
         contactList,
-        setContactList,
         chatMessages,
         setChatMessages,
         userVars,
@@ -57,32 +56,26 @@ function Homepage() {
             ws.start(
                 publicUsername,
                 privateKey,
+                // we want to return the latest value of contact list
                 contactList,
-                setContactList,
                 setChatMessages,
                 userVars,
             );
         }
         // for now we empty the message array when a new connection is established
-    }, [
-        publicUsername,
-        privateKey,
-        contactList,
-        setContactList,
-        setChatMessages,
-        isLogged,
-        userVars,
-    ]);
+    }, [publicUsername, privateKey, contactList, setChatMessages, isLogged, userVars]);
     const [currentTarget, setCurrentTarget] = useState(null);
 
-    async function handleNewConnection(publicUsername) {
+    async function handleNewConnection(typedPublicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
-        const response = await requests.getPublicKey(publicUsername);
+        const response = await requests.getPublicKey(typedPublicUsername.toLowerCase());
         if (response.status === 200) {
             const salt = dataManipulation.xorArray(
                 userVars.current.salt,
                 dataManipulation.objArrToUint8Arr(response.salt),
             );
+            const targetPublicUsername = response.publicUsername;
+            const targetPublicUsernameOriginalCase = response.publicUsernameOriginalCase;
             const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
             const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
             const otherPublicKey = await cryptoUtils.importKey(
@@ -91,19 +84,22 @@ function Homepage() {
                 [],
             );
             const sharedKey = await cryptoUtils.getSymmetricKey(otherPublicKey, privateKey, salt);
-            setContactList((contactInfo) => {
-                return { [publicUsername]: sharedKey, ...contactInfo };
-            });
-            setCurrentTarget(publicUsername);
+            contactList.current[targetPublicUsername] = sharedKey;
+            setCurrentTarget(targetPublicUsername);
             // we tell the server through the ws to pair the connection to the desired user
             // since this is only used for sending messages and not receiving it
             // Thus, there is not a problem to wait for the API  to respond.
-            ws.setup(publicUsername);
+            ws.setup(targetPublicUsername);
             // we load the chatroom
             // we should receive the messages
-            if (chatMessages[publicUsername] === undefined) {
-                setChatMessages((chatMessages) => {
-                    return { ...chatMessages, [publicUsername]: [] };
+            if (chatMessages[targetPublicUsername] === undefined) {
+                setChatMessages((previousChatMessages) => {
+                    const newChatMessages = structuredClone(previousChatMessages);
+                    newChatMessages[targetPublicUsername] = {
+                        username: targetPublicUsernameOriginalCase,
+                        messages: {},
+                    };
+                    return newChatMessages;
                 });
             }
         } else if (response.status === 404) {
@@ -127,7 +123,7 @@ function Homepage() {
         const iv = new Uint8Array(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
-            contactList[currentTarget],
+            contactList.current[currentTarget],
             {
                 name: "AES-GCM",
                 iv,
@@ -135,56 +131,58 @@ function Homepage() {
             // we encrypt the id and the message together
             id + message,
         );
-        setContactList((contactInfo) => {
-            return { [currentTarget]: contactInfo[currentTarget], ...contactInfo };
-        });
+        contactList.current = {
+            [currentTarget]: contactList.current[currentTarget],
+            ...contactList.current,
+        };
         ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, messageEncrypted]), 1);
-        setChatMessages((messages) => {
-            const arrOriginal = messages[currentTarget];
-            return {
-                ...messages,
-                [currentTarget]: [
-                    ...arrOriginal,
-                    {
-                        id: id,
-                        author: publicUsername,
-                        content: message,
-                        createdAt: new Date(),
-                        // the message we sent is by default false
-                        read: false,
-                    },
-                ],
+        setChatMessages((previousMessages) => {
+            const newMessages = structuredClone(previousMessages);
+            newMessages[currentTarget].messages[id] = {
+                author: publicUsername,
+                content: message,
+                createdAt: new Date(),
+                // the message we sent is by default false
+                read: false,
             };
+            return newMessages;
         });
     }
 
-    function readMessages(messages) {
+    async function readMessages(messages) {
+        // messages is an obj
+        // we are reading the messages of the currentTarget
         let changeMade = false;
-        messages.forEach(async (message) => {
-            if (message.read === false && message.author === currentTarget) {
+        for (let key in messages) {
+            if (
+                messages[key].read === false &&
+                messages[key].author === chatMessages[currentTarget].username
+            ) {
                 changeMade = true;
                 const iv = new Uint8Array(12);
                 const idEncrypted = await cryptoUtils.getEncryptedMessage(
-                    contactList[currentTarget],
+                    contactList.current[currentTarget],
                     { name: "AES-GCM", iv },
-                    message.id,
+                    key,
                 );
-                message.read = true;
+                messages[key].read = true;
                 ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, idEncrypted]), 2);
             }
             if (changeMade) {
-                setChatMessages((chatMessages) => {
-                    return { ...chatMessages, [currentTarget]: messages };
+                setChatMessages((previousChatMessages) => {
+                    const newChatMessages = structuredClone(previousChatMessages);
+                    newChatMessages[currentTarget].messages = messages;
+                    return newChatMessages;
                 });
             }
-        });
+        }
     }
 
     if (isLogged === false || privateKey === null) {
         return routes.navigate("/login");
     }
 
-    const contactNames = Object.keys(contactList);
+    const contactNames = Object.keys(contactList.current);
     const chatRoomMessages = getCurrentMessages(currentTarget, chatMessages);
 
     return (
@@ -201,13 +199,17 @@ function Homepage() {
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
                 {contactNames.map((contact) => {
                     let message = undefined;
-                    if (chatMessages[contact] && chatMessages[contact].length > 0) {
-                        message = chatMessages[contact].at(-1);
+                    if (
+                        chatMessages[contact] &&
+                        Object.keys(chatMessages[contact].messages).length > 0
+                    ) {
+                        message = Object.values(chatMessages[contact].messages).at(-1);
                     }
                     return (
                         <PreviewMessages
                             key={contact}
                             contact={contact}
+                            contactOriginalUsername={chatMessages[contact].username}
                             username={publicUsername}
                             message={message}
                             target={currentTarget}
@@ -233,8 +235,13 @@ function Homepage() {
     );
 }
 
-function getCurrentMessages(target, allMessages) {
-    return allMessages[target];
+function getCurrentMessages(target, messagesObj) {
+    if (messagesObj && target) {
+        if (messagesObj[target]) {
+            // we return a deep copy of the object
+            return structuredClone(messagesObj[target].messages);
+        }
+    } else return undefined;
 }
 
 export default Homepage;

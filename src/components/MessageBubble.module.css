@@ -80,11 +80,20 @@
   position: relative;
   display: flex;
   gap: 2px;
-  font-size: 0.75rem;
   margin-left: auto;
+  align-items: center;
 }
 
 .info>img {
   position: relative;
-  bottom: 3px;
+  width: auto;
+  height: 1.5rem;
+}
+
+.time {
+  color: #7da8d3;
+}
+
+.receiver .time {
+  color: #6d7f8f
 }

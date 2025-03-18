@@ -5,8 +5,8 @@ import { env } from "../../config/config.js";
 import ErrMsg from "../components/ErrMsg.jsx";
 import routes from "../routes.jsx";
 import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
-import styles from "./Signup.module.css";
 import FormCredentials from "../components/FormCredentials.jsx";
+import styles from "./Signup.module.css";
 
 export default function Signup() {
     const [info, setInfo] = useState("");
@@ -59,12 +59,24 @@ export default function Signup() {
                 <div className={styles["container-information"]}>
                     <div className={styles.instructions}>
                         <div>
-                            The username must have between {env.validation.users.username.minLength}{" "}
-                            and {env.validation.users.username.maxLength} characters.
+                            <div>
+                                The username must have between{" "}
+                                {env.validation.users.username.minLength} and{" "}
+                                {env.validation.users.username.maxLength} characters.
+                            </div>
+                            <div>
+                                The password must have between{" "}
+                                {env.validation.users.password.minLength} and{" "}
+                                {env.validation.users.password.maxLength} characters.
+                            </div>
                         </div>
-                        <div>
-                            The password must have between {env.validation.users.password.minLength}{" "}
-                            and {env.validation.users.password.maxLength} characters.
+                        <div className={styles.separator}></div>
+                        <div className={styles.notice}>
+                            <span>Note: </span>Both private and public username are case
+                            insensitive.
+                            <div>
+                                However, the public username will be shown as it is registered.
+                            </div>
                         </div>
                     </div>
                     {info ? (

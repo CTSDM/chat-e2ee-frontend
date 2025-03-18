@@ -15,11 +15,11 @@ function GlobalContextProvider() {
     const [isLogged, setIsLogged] = useState(false);
     const [privateUsername, setPrivateUsername] = useState(null);
     const [publicUsername, setPublicUsername] = useState(null);
-    const [contactList, setContactList] = useState({});
     const [privateKey, setPrivateKey] = useState(null);
     const [publicKey, setPublicKey] = useState(null);
     const [symmetricKey, setSymmetricKey] = useState(null);
     const [chatMessages, setChatMessages] = useState({});
+    const contactList = useRef({});
     const message = useRef();
     const userVars = useRef({});
     const isError = useRef(false);
@@ -44,7 +44,7 @@ function GlobalContextProvider() {
                     // i think so
                     setIsLogged(true);
                     setPrivateUsername(response.privateUsername);
-                    setPublicUsername(response.publicUsername);
+                    setPublicUsername(response.publicUsernameOriginalCase);
                     (async () => {
                         const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(
                             response.publicKey,
@@ -98,7 +98,6 @@ function GlobalContextProvider() {
                 publicKey,
                 setPublicKey,
                 contactList,
-                setContactList,
                 userVars,
                 message,
                 chatMessages,

@@ -13,7 +13,14 @@ window.HTMLElement.prototype.scrollIntoView = vi.fn;
 
 describe("The component ", () => {
     it("should not render anything when the message is null", () => {
-        render(<ChatRoom messages={null} handleOnSubmit={() => {}} username={username} />);
+        render(
+            <ChatRoom
+                messages={null}
+                handleOnSubmit={() => {}}
+                handleOnRender={() => {}}
+                username={username}
+            />,
+        );
         const div = screen.queryByText(/\*/);
         expect(div).not.toBeInTheDocument();
     });
@@ -21,7 +28,7 @@ describe("The component ", () => {
     it("should be rendered with an input text when the conversation starts.", () => {
         render(
             <ChatRoom
-                messages={[]}
+                messages={{}}
                 handleOnSubmit={() => {}}
                 handleOnRender={() => {}}
                 username={username}
@@ -31,7 +38,7 @@ describe("The component ", () => {
         expect(form).toBeInTheDocument();
     });
 
-    it("should render the messages with a valid messages array.", () => {
+    it("should render the messages with a valid messages object.", () => {
         render(
             <ChatRoom
                 messages={messages}
@@ -40,7 +47,8 @@ describe("The component ", () => {
                 username={username}
             />,
         );
-        messages.forEach((message) => {
+        const messagesArr = Object.values(messages);
+        messagesArr.forEach((message) => {
             expect(screen.getByText(message.content)).toBeInTheDocument();
             const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
             expect(screen.getByText(dateFormatted)).toBeInTheDocument();
@@ -52,7 +60,7 @@ describe("The component ", () => {
         const user = userEvent.setup();
         render(
             <ChatRoom
-                messages={[]}
+                messages={{}}
                 handleOnSubmit={handleOnSubmit}
                 handleOnRender={() => {}}
                 username={username}
@@ -62,7 +70,7 @@ describe("The component ", () => {
         await user.type(inputText, "test");
         const button = screen.getByRole("button");
         await user.click(button);
-        expect(handleOnSubmit).toHaveBeenCalled();
+        expect(handleOnSubmit).toHaveBeenCalledOnce();
     });
 
     it("should NOT call the handler function when an empty message is sent.", async () => {
@@ -70,7 +78,7 @@ describe("The component ", () => {
         const user = userEvent.setup();
         render(
             <ChatRoom
-                messages={[]}
+                messages={{}}
                 handleOnSubmit={handleOnSubmit}
                 handleOnRender={() => {}}
                 username={username}
@@ -81,7 +89,7 @@ describe("The component ", () => {
         expect(handleOnSubmit).not.toHaveBeenCalled();
     });
 
-    it("the messages sent/received by the user should have their respective classes.", () => {
+    it("should have the corresponding classes according to sent/received messages.", () => {
         render(
             <ChatRoom
                 messages={messages}
@@ -90,7 +98,8 @@ describe("The component ", () => {
                 username={username}
             />,
         );
-        messages.forEach((message) => {
+        const messagesArr = Object.values(messages);
+        messagesArr.forEach((message) => {
             const div = screen.getByText(message.content);
             const container = div.parentNode;
             if (message.author === username) {
@@ -101,5 +110,18 @@ describe("The component ", () => {
                 expect(container.classList.value.includes("receiver")).toBeTruthy();
             }
         });
+    });
+
+    it("should call the function handleOnRender once", () => {
+        const handleOnRender = vi.fn();
+        render(
+            <ChatRoom
+                messages={messages}
+                handleOnSubmit={() => {}}
+                handleOnRender={handleOnRender}
+                username={username}
+            />,
+        );
+        expect(handleOnRender).toHaveBeenCalledOnce();
     });
 });

@@ -2,28 +2,20 @@ import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
 import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
 import { cryptoUtils } from "../utils/utils.js";
-import { v4 as uuidv4 } from "uuid";
 
 let socket = null;
 
 function setup(publicUsername) {
     const msgSetup = {
         type: "register",
-        publicUsername,
+        publicUsername: publicUsername.toLowerCase(),
     };
     const msgSetupBuffer = dataManipulation.objToArrBuffer(msgSetup);
     // we add a byte 0 at the beginning to show that it is setup message
     socket.send(dataManipulation.addByteFlag(msgSetupBuffer, 0));
 }
 
-function start(
-    publicUsername,
-    selfPrivateKey,
-    contactList,
-    setContactList,
-    setChatMessages,
-    userVars,
-) {
+function start(publicUsername, selfPrivateKey, contactList, setChatMessages, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     socket.binaryType = "arraybuffer";
     socket.addEventListener("error", (err) => {
@@ -32,7 +24,7 @@ function start(
     socket.addEventListener("open", () => {
         const msg = {
             type: "start",
-            publicUsername,
+            publicUsername: publicUsername.toLowerCase(),
         };
         const msgBuffer = dataManipulation.objToArrBuffer(msg);
         // we add a byte 0 at the beginning to show that it is setup message
@@ -59,19 +51,16 @@ function start(
             // we decode the incoming messages with our private key; we dont need the sender's public key
             const username = dataManipulation.ArrBufferToString(data.slice(2, 18));
             let sharedKey;
-            if (contactList[username]) {
-                sharedKey = contactList[username];
-                setContactList((contactInfo) => {
-                    // we put the contact at the beginning so it reorders the message list
-                    // this really should be ordered in the message and not here...
-                    return { [username]: contactInfo[username], ...contactInfo };
-                });
+            if (contactList.current[username]) {
+                sharedKey = contactList.current[username];
+                contactList.current = { [username]: sharedKey, ...contactList.current };
             } else {
                 // we request the contactList through the API
                 // we can do this synchronously // it shouldnt take that much time either way
                 // or we do it async and just calculate it in the background
                 const response = await requests.getPublicKey(username);
                 const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
+                const targetOriginal = response.publicUsernameOriginalCase;
                 const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                 const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
                 const publicKey = await cryptoUtils.importKey(
@@ -84,9 +73,12 @@ function start(
                     selfPrivateKey,
                     commonSalt,
                 );
-                setContactList((contactInfo) => {
-                    // we calculate the key from the output of the Diffie Hellman exchange
-                    return { [username]: sharedKey, ...contactInfo };
+                contactList.current = { [username]: sharedKey, ...contactList.current };
+                // since this would be the first message, we prepare the object
+                setChatMessages((previousChatMessages) => {
+                    const newChatMessages = structuredClone(previousChatMessages);
+                    newChatMessages[username] = { username: targetOriginal, messages: {} };
+                    return newChatMessages;
                 });
             }
             // we need to decrypt now!
@@ -99,42 +91,24 @@ function start(
             const id = messageDecrypted.slice(0, 36);
             if (codeMessage === 1) {
                 const message = messageDecrypted.slice(36);
-                setChatMessages((messages) => {
-                    let arrOriginal;
-                    if (!messages[username]) {
-                        arrOriginal = [];
-                    } else {
-                        arrOriginal = messages[username];
-                    }
-                    return {
-                        ...messages,
-                        [username]: [
-                            ...arrOriginal,
-                            {
-                                // the id set by the sender
-                                id: id,
-                                author: username,
-                                content: message,
-                                createdAt: new Date(),
-                                // receiving a message does not mean the message has been read
-                                read: false,
-                            },
-                        ],
+                setChatMessages((previousChatMessages) => {
+                    const newChatMessages = structuredClone(previousChatMessages);
+                    newChatMessages[username].messages[id] = {
+                        author: newChatMessages[username].username,
+                        content: message,
+                        createdAt: new Date(),
+                        // receiving a message does not mean the message has been read
+                        read: false,
                     };
+                    return newChatMessages;
                 });
             } else {
                 // we update the read status of our own message
-                setChatMessages((currentMessages) => {
-                    const userMessages = currentMessages[username];
-                    // find the message to update
-                    // to do a faster update, username should be an object with the ids as keys
-                    // since that is not the case I have to deal with what I've beeng given aka I've created
-                    userMessages.forEach((message) => {
-                        if (message.id === id) {
-                            message.read = true;
-                        }
-                    });
-                    return { ...currentMessages, [publicUsername]: userMessages }; // updated messages
+                setChatMessages((previousChatMessages) => {
+                    // we update the read status of the message with the given id
+                    const newChatMessages = structuredClone(previousChatMessages);
+                    newChatMessages[username].messages[id].read = true;
+                    return newChatMessages;
                 });
             }
         } else {

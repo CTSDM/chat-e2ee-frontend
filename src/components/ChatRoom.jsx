@@ -10,9 +10,12 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetCo
     const messagesLength = useRef(0);
 
     useEffect(() => {
-        if (messages && messagesLength.current !== messages.length) {
-            messagesLength.current = messages.length;
-            handleOnRender(messages);
+        if (messages) {
+            const len = Object.keys(messages).length;
+            if (messagesLength.current !== len) {
+                messagesLength.current = len;
+                handleOnRender(messages);
+            }
         }
     }, [handleOnRender, messages]);
 
@@ -31,13 +34,18 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetCo
         }
     }
 
+    // we need to convert an object into an array
+    // we only need the values
+    const messagesArr = Object.values(messages);
+    const messagesId = Object.keys(messages);
+
     return (
         <div className={styles.container}>
             <div className={styles.contact}>{targetContact}</div>
             <div className={styles.messagesContainer}>
-                {messages.map((message) => (
+                {messagesArr.map((message, index) => (
                     <MessageBubble
-                        key={message.id}
+                        key={messagesId[index]}
                         message={message.content}
                         author={message.author}
                         date={message.createdAt}
@@ -56,15 +64,18 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetCo
 ChatRoom.propTypes = {
     targetContact: PropTypes.string,
     username: PropTypes.string.isRequired,
-    messages: PropTypes.arrayOf(
+    messages: PropTypes.oneOfType([
         PropTypes.shape({
-            id: PropTypes.string.isRequired,
-            author: PropTypes.string.isRequired,
-            content: PropTypes.string.isRequired,
-            createdAt: PropTypes.object.isRequired,
-            read: PropTypes.bool.isRequired,
+            id: PropTypes.shape({
+                id: PropTypes.string.isRequired,
+                author: PropTypes.string.isRequired,
+                content: PropTypes.string.isRequired,
+                createdAt: PropTypes.object.isRequired,
+                read: PropTypes.bool.isRequired,
+            }),
         }),
-    ),
+        PropTypes.object,
+    ]),
     handleOnSubmit: PropTypes.func.isRequired,
     handleOnRender: PropTypes.func.isRequired,
 };

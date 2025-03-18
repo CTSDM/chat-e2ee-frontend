@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from "react";
-import { useNavigate, useActionData, redirect } from "react-router-dom";
+import { useNavigate, useActionData } from "react-router-dom";
 import { Context } from "./utils/globalStateContext.js";
 import FormCredentials from "../components/FormCredentials.jsx";
 import { cryptoUtils, userUtils } from "../utils/utils.js";
@@ -42,7 +42,7 @@ export default function Login() {
                 setInfo("The authentication was successful.");
                 setIsLogged(true);
                 setPrivateUsername(response.privateUsername);
-                setPublicUsername(response.publicUsername);
+                setPublicUsername(response.publicUsernameOriginalCase);
                 (async () => {
                     const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                     const publicKeyJWK = JSON.parse(
@@ -58,7 +58,7 @@ export default function Login() {
                 userUtils.updateOneTimeVariables(userVars, response);
                 return;
             } else if (response.status) {
-                setInfo("The authentication was not successful. Wrong password or username");
+                setInfo("The authentication was not successful. Wrong password or username.");
                 setIsLogged(false);
                 return;
             } else {

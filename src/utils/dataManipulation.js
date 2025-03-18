@@ -71,6 +71,7 @@ function Uint8ArrayToStr(arr) {
 }
 
 function xorArray(arr1, arr2) {
+    console.log(arr1, arr2);
     const newArr = [];
     for (let i = 0; i < arr1.length; ++i) {
         newArr.push(arr1[i] ^ arr2[i]);

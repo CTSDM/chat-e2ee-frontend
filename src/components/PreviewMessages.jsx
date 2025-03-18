@@ -43,7 +43,6 @@ PreviewMessages.propTypes = {
     contact: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     message: PropTypes.shape({
-        id: PropTypes.string.isRequired,
         author: PropTypes.string.isRequired,
         content: PropTypes.string.isRequired,
         createdAt: PropTypes.object.isRequired,

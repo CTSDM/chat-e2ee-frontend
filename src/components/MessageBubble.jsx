@@ -35,7 +35,7 @@ export default function MessageBubble({ message, author, username, date, isRead 
                 <div className={styles.content}>{content}</div>
                 <div className={styles.info}>
                     <div className={styles.time}>{dateFormatted}</div>
-                    <img src={readStatusObj.src} alt={readStatusObj.alt} />
+                    {isAuthSender ? <img src={readStatusObj.src} alt={readStatusObj.alt} /> : null}
                 </div>
             </div>
             {isAuthSender ? null : (

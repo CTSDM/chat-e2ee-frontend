@@ -9,7 +9,7 @@ import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
 import { cryptoUtils } from "../utils/utils.js";
 import ws from "../websocket/ws.js";
-import routes from "../routes.jsx";
+import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
@@ -28,6 +28,7 @@ function Homepage() {
     const [widthSidebar, setWidthSidebar] = useState(400);
     const [errMessages, setErrMessages] = useState(null);
     const isResize = useRef(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleMouseMove = (e) => {
@@ -65,6 +66,16 @@ function Homepage() {
         // for now we empty the message array when a new connection is established
     }, [publicUsername, privateKey, contactList, setChatMessages, isLogged, userVars]);
     const [currentTarget, setCurrentTarget] = useState(null);
+
+    useEffect(() => {
+        if (isLogged === false || privateKey === null) {
+            navigate("/login");
+        }
+    });
+
+    if (isLogged === false || privateKey === null) {
+        return null;
+    }
 
     async function handleNewConnection(typedPublicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
@@ -179,10 +190,6 @@ function Homepage() {
                 });
             }
         }
-    }
-
-    if (isLogged === false || privateKey === null) {
-        return routes.navigate("/login");
     }
 
     const contactNames = getContacts(contactList.current);

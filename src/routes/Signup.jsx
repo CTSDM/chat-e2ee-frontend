@@ -49,7 +49,7 @@ export default function Signup() {
     }
 
     if (isLogged === true) {
-        routes.navigate("/");
+        navigate("/");
         return;
     }
 

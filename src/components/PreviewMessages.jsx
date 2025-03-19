@@ -18,14 +18,18 @@ function PreviewMessages({ contact, target, username, message, handleOnClick }) 
     }
 
     let stylesContainer;
-    if (target === contact) {
+    if (target === contact.toLowerCase()) {
         stylesContainer = `${styles.container} ${styles.selected}`;
     } else {
         stylesContainer = `${styles.container}`;
     }
 
     return (
-        <button type="button" className={stylesContainer} onClick={() => handleOnClick(contact)}>
+        <button
+            type="button"
+            className={stylesContainer}
+            onClick={() => handleOnClick(contact.toLowerCase())}
+        >
             <div className={styles.row}>
                 <div className={styles.other}>{contact}</div>
                 <div>date here</div>

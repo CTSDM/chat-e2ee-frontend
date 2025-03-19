@@ -52,8 +52,11 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             const username = dataManipulation.ArrBufferToString(data.slice(2, 18));
             let sharedKey;
             if (contactList.current[username]) {
-                sharedKey = contactList.current[username];
-                contactList.current = { [username]: sharedKey, ...contactList.current };
+                sharedKey = contactList.current[username].key;
+                contactList.current = {
+                    [username]: contactList.current[username],
+                    ...contactList.current,
+                };
             } else {
                 // we request the contactList through the API
                 // we can do this synchronously // it shouldnt take that much time either way
@@ -73,7 +76,10 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     selfPrivateKey,
                     commonSalt,
                 );
-                contactList.current = { [username]: sharedKey, ...contactList.current };
+                contactList.current = {
+                    [username]: { key: sharedKey, username: targetOriginal },
+                    ...contactList.current,
+                };
                 // since this would be the first message, we prepare the object
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);

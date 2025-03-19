@@ -5,7 +5,7 @@ import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
 import { useEffect, useRef } from "react";
 
-function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetContact }) {
+function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
 
@@ -41,7 +41,7 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetCo
 
     return (
         <div className={styles.container}>
-            <div className={styles.contact}>{targetContact}</div>
+            <div className={styles.contact}>{target}</div>
             <div className={styles.messagesContainer}>
                 {messagesArr.map((message, index) => (
                     <MessageBubble
@@ -62,7 +62,7 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, targetCo
 }
 
 ChatRoom.propTypes = {
-    targetContact: PropTypes.string,
+    target: PropTypes.string,
     username: PropTypes.string.isRequired,
     messages: PropTypes.oneOfType([
         PropTypes.shape({

@@ -84,7 +84,10 @@ function Homepage() {
                 [],
             );
             const sharedKey = await cryptoUtils.getSymmetricKey(otherPublicKey, privateKey, salt);
-            contactList.current[targetPublicUsername] = sharedKey;
+            contactList.current[targetPublicUsername] = {
+                username: targetPublicUsernameOriginalCase,
+                key: sharedKey,
+            };
             setCurrentTarget(targetPublicUsername);
             // we tell the server through the ws to pair the connection to the desired user
             // since this is only used for sending messages and not receiving it
@@ -123,7 +126,7 @@ function Homepage() {
         const iv = new Uint8Array(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
-            contactList.current[currentTarget],
+            contactList.current[currentTarget].key,
             {
                 name: "AES-GCM",
                 iv,
@@ -161,7 +164,7 @@ function Homepage() {
                 changeMade = true;
                 const iv = new Uint8Array(12);
                 const idEncrypted = await cryptoUtils.getEncryptedMessage(
-                    contactList.current[currentTarget],
+                    contactList.current[currentTarget].key,
                     { name: "AES-GCM", iv },
                     key,
                 );
@@ -182,7 +185,7 @@ function Homepage() {
         return routes.navigate("/login");
     }
 
-    const contactNames = Object.keys(contactList.current);
+    const contactNames = getContacts(contactList.current);
     const chatRoomMessages = getCurrentMessages(currentTarget, chatMessages);
 
     return (
@@ -198,18 +201,19 @@ function Homepage() {
                 <SearchMessages />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
                 {contactNames.map((contact) => {
+                    const contactLC = contact.toLowerCase();
                     let message = undefined;
                     if (
-                        chatMessages[contact] &&
-                        Object.keys(chatMessages[contact].messages).length > 0
+                        chatMessages[contactLC] &&
+                        Object.keys(chatMessages[contactLC].messages).length > 0
                     ) {
-                        message = Object.values(chatMessages[contact].messages).at(-1);
+                        message = Object.values(chatMessages[contactLC].messages).at(-1);
                     }
                     return (
                         <PreviewMessages
                             key={contact}
                             contact={contact}
-                            contactOriginalUsername={chatMessages[contact].username}
+                            contactOriginalUsername={chatMessages[contactLC].username}
                             username={publicUsername}
                             message={message}
                             target={currentTarget}
@@ -224,7 +228,7 @@ function Homepage() {
             ></div>
             <div className={styles.rightSide}>
                 <ChatRoom
-                    targetContact={currentTarget}
+                    target={currentTarget && contactList.current[currentTarget].username}
                     messages={chatRoomMessages}
                     handleOnSubmit={handleSubmitMessage}
                     handleOnRender={readMessages}
@@ -242,6 +246,16 @@ function getCurrentMessages(target, messagesObj) {
             return structuredClone(messagesObj[target].messages);
         }
     } else return undefined;
+}
+
+function getContacts(obj) {
+    // the expected object should be as follows
+    // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
+    const arr = [];
+    for (let key in obj) {
+        arr.push(obj[key].username);
+    }
+    return arr;
 }
 
 export default Homepage;

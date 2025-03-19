@@ -8,6 +8,7 @@ import { useEffect, useRef } from "react";
 function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
+    const refForm = useRef(null);
 
     useEffect(() => {
         if (messages) {
@@ -16,6 +17,10 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
                 messagesLength.current = len;
                 handleOnRender(messages);
             }
+        }
+        // we focus the input
+        if (refForm.current) {
+            refForm.current.focus();
         }
     }, [handleOnRender, messages]);
 
@@ -55,7 +60,12 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
                 ))}
             </div>
             <div className={styles.form}>
-                <FormSimple buttonText={"Send"} input={input} handleSubmit={handleSubmit} />
+                <FormSimple
+                    innerRef={refForm}
+                    buttonText={"Send"}
+                    input={input}
+                    handleSubmit={handleSubmit}
+                />
             </div>
         </div>
     );

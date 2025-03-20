@@ -1,0 +1,66 @@
+.container {
+  display: grid;
+  place-content: center;
+  position: relative;
+}
+
+.container dialog::backdrop {
+  background: rgba(2, 2, 2, 0.5);
+}
+
+.container dialog {
+  position: absolute;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+}
+
+.dialogContent {
+  min-width: 400px;
+  min-height: 200px;
+  background: #807E75;
+  display: grid;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  gap: 5px;
+}
+
+.label {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  user-select: none;
+  padding: 4px;
+  border-radius: 4px;
+  gap: 50px;
+}
+
+.label:hover {
+  background: SkyBlue;
+
+  >div {
+    color: Black;
+  }
+}
+
+.label input {
+  outline: none;
+}
+
+.info {
+  height: 1.5rem;
+  text-align: center;
+  transition: color 0.25s ease-in-out;
+}
+
+.optionsContainer {
+  margin: auto;
+  width: fit-content;
+  display: grid;
+  gap: 3px;
+}
+
+.buttonsContainer {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}

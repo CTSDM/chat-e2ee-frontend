@@ -4,6 +4,7 @@ import PreviewMessages from "../components/PreviewMessages.jsx";
 import ChatRoom from "../components/ChatRoom.jsx";
 import ButtonDialog from "../components/ButtonDialog.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";
+import CreateGroup from "../components/CreateGroup.jsx";
 import { Context } from "./utils/globalStateContext.js";
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
@@ -133,6 +134,10 @@ function Homepage() {
         ws.setup(name);
     }
 
+    async function onSubmitCreateGroup(data) {
+        // send this through websockets to the parties interested in the group chat
+    }
+
     async function handleSubmitMessage(message) {
         const iv = new Uint8Array(12);
         const id = uuidv4();
@@ -204,6 +209,11 @@ function Homepage() {
                     textModal={"Connect"}
                     onSubmit={handleNewConnection}
                     input={env.inputs.signup[1]}
+                />
+                <CreateGroup
+                    contactList={contactList.current}
+                    setErrorMessage={setErrMessages}
+                    onSubmit={onSubmitCreateGroup}
                 />
                 <SearchMessages />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}

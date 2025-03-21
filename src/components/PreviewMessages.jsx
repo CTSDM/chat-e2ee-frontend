@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import styles from "./PreviewMessages.module.css";
 
-function PreviewMessages({ contact, target, username, message, handleOnClick }) {
+function PreviewMessages({ contact, id, target, username, message, handleOnClick }) {
     let divContentLastMessage = <div>No messages yet...</div>;
     if (message) {
         const spanContent = <span className={styles.text}>{message.content}</span>;
@@ -18,7 +18,7 @@ function PreviewMessages({ contact, target, username, message, handleOnClick }) 
     }
 
     let stylesContainer;
-    if (target === contact.toLowerCase()) {
+    if (target === id.toLowerCase()) {
         stylesContainer = `${styles.container} ${styles.selected}`;
     } else {
         stylesContainer = `${styles.container}`;
@@ -28,7 +28,7 @@ function PreviewMessages({ contact, target, username, message, handleOnClick }) 
         <button
             type="button"
             className={stylesContainer}
-            onClick={() => handleOnClick(contact.toLowerCase())}
+            onClick={() => handleOnClick(id.toLowerCase())}
         >
             <div className={styles.row}>
                 <div className={styles.other}>{contact}</div>
@@ -43,6 +43,7 @@ function PreviewMessages({ contact, target, username, message, handleOnClick }) 
 }
 
 PreviewMessages.propTypes = {
+    id: PropTypes.string,
     target: PropTypes.string,
     contact: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,

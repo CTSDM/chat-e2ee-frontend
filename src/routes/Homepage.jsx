@@ -99,6 +99,7 @@ function Homepage() {
             contactList.current[targetPublicUsername] = {
                 username: targetPublicUsernameOriginalCase,
                 key: sharedKey,
+                type: "user",
             };
             setCurrentTarget(targetPublicUsername);
             // we tell the server through the ws to pair the connection to the desired user
@@ -111,7 +112,7 @@ function Homepage() {
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     newChatMessages[targetPublicUsername] = {
-                        username: targetPublicUsernameOriginalCase,
+                        name: targetPublicUsernameOriginalCase,
                         messages: {},
                     };
                     return newChatMessages;
@@ -134,8 +135,25 @@ function Homepage() {
         ws.setup(name);
     }
 
-    async function onSubmitCreateGroup(data) {
-        // send this through websockets to the parties interested in the group chat
+    async function onSubmitCreateGroup(usernamesArr, groupName) {
+        //we add the group to the contact list, we use a uuid as the id
+        //at the end we update the target
+        const id = uuidv4();
+        setCurrentTarget(id);
+        contactList.current[id] = {
+            // username will be the group name
+            username: groupName,
+            type: "group",
+        };
+        setChatMessages((previousChatMessages) => {
+            const newChatMessages = structuredClone(previousChatMessages);
+            newChatMessages[id] = {
+                name: groupName,
+                messages: {},
+            };
+            return newChatMessages;
+        });
+        setCurrentTarget(id);
     }
 
     async function handleSubmitMessage(message) {
@@ -218,19 +236,18 @@ function Homepage() {
                 <SearchMessages />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
                 {contactNames.map((contact) => {
-                    const contactLC = contact.toLowerCase();
                     let message = undefined;
                     if (
-                        chatMessages[contactLC] &&
-                        Object.keys(chatMessages[contactLC].messages).length > 0
+                        chatMessages[contact] &&
+                        Object.keys(chatMessages[contact].messages).length > 0
                     ) {
-                        message = Object.values(chatMessages[contactLC].messages).at(-1);
+                        message = Object.values(chatMessages[contact].messages).at(-1);
                     }
                     return (
                         <PreviewMessages
                             key={contact}
-                            contact={contact}
-                            contactOriginalUsername={chatMessages[contactLC].username}
+                            id={contact}
+                            contact={contactList.current[contact].username}
                             username={publicUsername}
                             message={message}
                             target={currentTarget}
@@ -270,7 +287,7 @@ function getContacts(obj) {
     // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
     const arr = [];
     for (let key in obj) {
-        arr.push(obj[key].username);
+        arr.push(key);
     }
     return arr;
 }

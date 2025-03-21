@@ -77,7 +77,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     commonSalt,
                 );
                 contactList.current = {
-                    [username]: { key: sharedKey, username: targetOriginal },
+                    [username]: { key: sharedKey, username: targetOriginal, type: "user" },
                     ...contactList.current,
                 };
                 // since this would be the first message, we prepare the object

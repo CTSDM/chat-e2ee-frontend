@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
 import { Form } from "react-router-dom";
+import InputText from "./InputComp";
 import styles from "./CreateGroup.module.css";
 
 export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) {
@@ -9,8 +10,10 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
     const [info, setInfo] = useState("");
 
     for (let key in contactList) {
-        usernameArr.push(key);
-        usernameOCArr.push(contactList[key].username);
+        if (contactList[key].type === "user") {
+            usernameArr.push(key);
+            usernameOCArr.push(contactList[key].username);
+        }
     }
 
     // for now we can only add users that are already in our contact list
@@ -30,7 +33,8 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
         // this gives us an array
         const valuesArr = formData.getAll("username");
         if (valuesArr.length > 0) {
-            onSubmit(valuesArr);
+            const groupName = formData.get("group");
+            onSubmit(valuesArr, groupName);
             cancelSubmit(e);
         } else {
             setInfo("Please select at least one contact");
@@ -86,6 +90,7 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
                                 );
                             })}
                         </div>
+                        <InputText type="text" name="group" placeholder="Group name" />
                         <div className={styles.info}>{info}</div>
                         <div className={styles.buttonsContainer}>
                             <button type="submit">{"Create group"}</button>

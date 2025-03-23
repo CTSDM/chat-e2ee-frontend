@@ -40,81 +40,85 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             console.log("Unspecified code.");
             return;
         }
-        if (codeMessage <= 99 && codeMessage >= 1) {
-            const data = event.data.slice(1);
-            // 16 first bytes for the user
-            // the next 512 bytes for the message
-            // at this point we check if we have the user in the contact list
-            // if we dont have we request the key through the api
-            // we decode the incoming messages with our private key; we dont need the sender's public key
-            const username = dataManipulation.arrBufferToString(data.slice(0, 48));
-            let sharedKey;
-            if (contactList.current[username]) {
-                sharedKey = contactList.current[username].key;
+        const data = event.data.slice(1);
+        // 16 first bytes for the user
+        // the next 512 bytes for the message
+        // at this point we check if we have the user in the contact list
+        // if we dont have we request the key through the api
+        // we decode the incoming messages with our private key; we dont need the sender's public key
+        const username = dataManipulation.arrBufferToString(data.slice(0, 48));
+        let sharedKey;
+        if (contactList.current[username]) {
+            sharedKey = contactList.current[username].key;
+            if (codeMessage === 1) {
                 contactList.current = {
                     [username]: contactList.current[username],
                     ...contactList.current,
                 };
-            } else {
-                // we request the contactList through the API
-                // we can do this synchronously // it shouldnt take that much time either way
-                // or we do it async and just calculate it in the background
-                const response = await requests.getPublicKey(username);
-                const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
-                const targetOriginal = response.publicUsernameOriginalCase;
-                const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
-                const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
-                const publicKey = await cryptoUtils.importKey(
-                    publicKeyJWK,
-                    { name: "ECDH", namedCurve: "P-256" },
-                    [],
-                );
-                sharedKey = await cryptoUtils.getSymmetricKey(
-                    publicKey,
-                    selfPrivateKey,
-                    commonSalt,
-                );
+            }
+        } else {
+            // we request the contactList through the API
+            // we can do this synchronously // it shouldnt take that much time either way
+            // or we do it async and just calculate it in the background
+            const response = await requests.getPublicKey(username);
+            const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
+            const targetOriginal = response.publicUsernameOriginalCase;
+            const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
+            const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
+            const publicKey = await cryptoUtils.importKey(
+                publicKeyJWK,
+                { name: "ECDH", namedCurve: "P-256" },
+                [],
+            );
+            sharedKey = await cryptoUtils.getSymmetricKey(publicKey, selfPrivateKey, commonSalt);
+            if (codeMessage === 1) {
                 contactList.current = {
                     [username]: { key: sharedKey, username: targetOriginal, type: "user" },
                     ...contactList.current,
                 };
-                // since this would be the first message, we prepare the object
-                setChatMessages((previousChatMessages) => {
-                    const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username] = { name: targetOriginal, messages: {} };
-                    return newChatMessages;
-                });
+            } else if (codeMessage === 2) {
+                contactList.current[username] = {
+                    key: sharedKey,
+                    username: targetOriginal,
+                    type: "user",
+                };
             }
-            // we need to decrypt now!
-            const ivBuffer = data.slice(48, 60);
-            const messageDecrypted = await cryptoUtils.getDecryptedMessage(
-                sharedKey,
-                { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
-                data.slice(60),
-            );
-            const id = messageDecrypted.slice(0, 36);
-            if (codeMessage === 1) {
-                const message = messageDecrypted.slice(36);
-                setChatMessages((previousChatMessages) => {
-                    const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[id] = {
-                        author: newChatMessages[username].name,
-                        content: message,
-                        createdAt: new Date(),
-                        // receiving a message does not mean the message has been read
-                        read: false,
-                    };
-                    return newChatMessages;
-                });
-            } else {
-                // we update the read status of our own message
-                setChatMessages((previousChatMessages) => {
-                    // we update the read status of the message with the given id
-                    const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[id].read = true;
-                    return newChatMessages;
-                });
-            }
+            // since this would be the first message, we prepare the object
+            setChatMessages((previousChatMessages) => {
+                const newChatMessages = structuredClone(previousChatMessages);
+                newChatMessages[username] = { name: targetOriginal, messages: {} };
+                return newChatMessages;
+            });
+        }
+        // we need to decrypt now!
+        const ivBuffer = data.slice(48, 60);
+        const messageDecrypted = await cryptoUtils.getDecryptedMessage(
+            sharedKey,
+            { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
+            data.slice(60),
+        );
+        const id = messageDecrypted.slice(0, 36);
+        if (codeMessage === 1) {
+            const message = messageDecrypted.slice(36);
+            setChatMessages((previousChatMessages) => {
+                const newChatMessages = structuredClone(previousChatMessages);
+                newChatMessages[username].messages[id] = {
+                    author: newChatMessages[username].name,
+                    content: message,
+                    createdAt: new Date(),
+                    // receiving a message does not mean the message has been read
+                    read: false,
+                };
+                return newChatMessages;
+            });
+        } else if (codeMessage === 2) {
+            // we update the read status of our own message
+            setChatMessages((previousChatMessages) => {
+                // we update the read status of the message with the given id
+                const newChatMessages = structuredClone(previousChatMessages);
+                newChatMessages[username].messages[id].read = true;
+                return newChatMessages;
+            });
         }
     });
 }

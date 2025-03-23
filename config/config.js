@@ -88,6 +88,9 @@ const env = {
         salt: import.meta.env.VITE_TEST_SALT,
         iv: import.meta.env.VITE_TEST_IV,
     },
+    metaInfo: {
+        target: 48, // bytes
+    },
 };
 
 env.wsType = env.dev.status ? "ws" : "wss";

@@ -102,10 +102,6 @@ function Homepage() {
                 type: "user",
             };
             setCurrentTarget(targetPublicUsername);
-            // we tell the server through the ws to pair the connection to the desired user
-            // since this is only used for sending messages and not receiving it
-            // Thus, there is not a problem to wait for the API  to respond.
-            ws.setup(targetPublicUsername);
             // we load the chatroom
             // we should receive the messages
             if (chatMessages[targetPublicUsername] === undefined) {
@@ -129,10 +125,6 @@ function Homepage() {
         // we change the current target, and thus the shown messages will change
         // the chat will be ready to send messages to that contact
         setCurrentTarget(name);
-        // the line below is not bueno against offline updates
-        // if the server is not available when setting up the websocket, it could happen that we send messages to another party
-        // due to the nature of the encryption the other party wouldn't be able to read the messages (but nonetheless this is terrible)
-        ws.setup(name);
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
@@ -172,7 +164,11 @@ function Homepage() {
             [currentTarget]: contactList.current[currentTarget],
             ...contactList.current,
         };
-        ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, messageEncrypted]), 1);
+        ws.sendMessage(
+            1,
+            currentTarget,
+            dataManipulation.groupBuffers([iv.buffer, messageEncrypted]),
+        );
         setChatMessages((previousMessages) => {
             const newMessages = structuredClone(previousMessages);
             newMessages[currentTarget].messages[id] = {
@@ -193,7 +189,7 @@ function Homepage() {
         for (let key in messages) {
             if (
                 messages[key].read === false &&
-                messages[key].author === chatMessages[currentTarget].username
+                messages[key].author === chatMessages[currentTarget].name
             ) {
                 changeMade = true;
                 const iv = new Uint8Array(12);
@@ -203,7 +199,11 @@ function Homepage() {
                     key,
                 );
                 messages[key].read = true;
-                ws.sendMessage(dataManipulation.groupBuffers([iv.buffer, idEncrypted]), 2);
+                ws.sendMessage(
+                    2,
+                    currentTarget,
+                    dataManipulation.groupBuffers([iv.buffer, idEncrypted]),
+                );
             }
             if (changeMade) {
                 setChatMessages((previousChatMessages) => {

@@ -9,17 +9,18 @@ function objToArrBuffer(obj) {
     return arrUint8.buffer;
 }
 
-function stringToUint8Array(str) {
+function stringToUint8Array(str, targetLength) {
     const enc = new TextEncoder();
-    const arrUint8 = enc.encode(str);
-    return arrUint8;
+    const arr = enc.encode(str);
+    // we pad with array of 0 a new uint8array, in case it is needed
+    return new Uint8Array([...new Array(targetLength - arr.length), ...arr]);
 }
 
 function stringToArrBuffer(str) {
     return stringToUint8Array(str).buffer;
 }
 
-function ArrBufferToString(arrBuffer) {
+function arrBufferToString(arrBuffer) {
     const arr = new Uint8Array(arrBuffer);
     const strEncodedArr = arr.filter((value) => value !== 0);
     const dec = new TextDecoder();
@@ -78,8 +79,8 @@ function xorArray(arr1, arr2) {
     return new Uint8Array(newArr);
 }
 
-function addByteFlag(buff, flag) {
-    return new Uint8Array([flag, ...new Uint8Array(buff)]).buffer;
+function addByteFlag(flag, arr, buff) {
+    return new Uint8Array([flag, ...arr, ...new Uint8Array(buff)]).buffer;
 }
 
 function getNumFromBuffer(buff) {
@@ -109,7 +110,7 @@ export default {
     objToArrBuffer,
     hexStringToUint8Array,
     stringToArrBuffer,
-    ArrBufferToString,
+    arrBufferToString,
     stringToUint8Array,
     Uint8ArrayToJSON,
     Uint8ArrayToStr,

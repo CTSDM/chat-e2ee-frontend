@@ -5,16 +5,6 @@ import { cryptoUtils } from "../utils/utils.js";
 
 let socket = null;
 
-function setup(publicUsername) {
-    const msgSetup = {
-        type: "register",
-        publicUsername: publicUsername.toLowerCase(),
-    };
-    const msgSetupBuffer = dataManipulation.objToArrBuffer(msgSetup);
-    // we add a byte 0 at the beginning to show that it is setup message
-    socket.send(dataManipulation.addByteFlag(msgSetupBuffer, 0));
-}
-
 function start(publicUsername, selfPrivateKey, contactList, setChatMessages, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     socket.binaryType = "arraybuffer";
@@ -28,28 +18,36 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         };
         const msgBuffer = dataManipulation.objToArrBuffer(msg);
         // we add a byte 0 at the beginning to show that it is setup message
-        socket.send(dataManipulation.addByteFlag(msgBuffer, 0));
+        socket.send(dataManipulation.addByteFlag(0, [], msgBuffer));
     });
     socket.addEventListener("message", async (event) => {
         // the server will always send an array buffer
         let codeMessage;
-        let offset = 0;
         const tempData = event.data;
         if (tempData.byteLength === 2) {
-            codeMessage = 0;
+            const code = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
+            if (code === 100) {
+                console.log("Connection not allowed");
+                return;
+            } else {
+                console.log("connection set");
+                return;
+            }
         } else {
             codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
-            ++offset;
         }
-        const codeStatus = new Uint16Array(tempData.slice(offset, 2 + offset))[0];
-        if (codeStatus === 200 && codeMessage >= 1) {
+        if (codeMessage > 100) {
+            console.log("Unspecified code.");
+            return;
+        }
+        if (codeMessage <= 99 && codeMessage >= 1) {
             const data = event.data.slice(1);
             // 16 first bytes for the user
             // the next 512 bytes for the message
             // at this point we check if we have the user in the contact list
             // if we dont have we request the key through the api
             // we decode the incoming messages with our private key; we dont need the sender's public key
-            const username = dataManipulation.ArrBufferToString(data.slice(2, 18));
+            const username = dataManipulation.arrBufferToString(data.slice(0, 48));
             let sharedKey;
             if (contactList.current[username]) {
                 sharedKey = contactList.current[username].key;
@@ -83,16 +81,16 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 // since this would be the first message, we prepare the object
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username] = { username: targetOriginal, messages: {} };
+                    newChatMessages[username] = { name: targetOriginal, messages: {} };
                     return newChatMessages;
                 });
             }
             // we need to decrypt now!
-            const ivBuffer = data.slice(18, 30);
+            const ivBuffer = data.slice(48, 60);
             const messageDecrypted = await cryptoUtils.getDecryptedMessage(
                 sharedKey,
                 { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
-                data.slice(30),
+                data.slice(60),
             );
             const id = messageDecrypted.slice(0, 36);
             if (codeMessage === 1) {
@@ -100,7 +98,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     newChatMessages[username].messages[id] = {
-                        author: newChatMessages[username].username,
+                        author: newChatMessages[username].name,
                         content: message,
                         createdAt: new Date(),
                         // receiving a message does not mean the message has been read
@@ -117,31 +115,18 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     return newChatMessages;
                 });
             }
-        } else {
-            console.log(getCodeMessage(codeStatus));
         }
     });
 }
 
-function getCodeMessage(code) {
-    if (code === 401) {
-        return "you don't have access to setup the websocket connection";
-    } else if (code === 404) {
-        return "not found";
-    } else if (code > 404 && code < 500) {
-        return "data handling error on the server";
-    } else {
-        return "server error";
-    }
-}
-
 // this function expects ArrBuffer
-function sendMessage(message, flagByte) {
+function sendMessage(flagByte, target, message) {
     // make an assert on what type of data I expect here!
     // flagbyte = 1: regular message; 2: acknowledge read
     // each sent message should also have an id
     // the id is encoded nex to the message
-    socket.send(dataManipulation.addByteFlag(message, flagByte));
+    const strArr = dataManipulation.stringToUint8Array(target, env.metaInfo.target);
+    socket.send(dataManipulation.addByteFlag(flagByte, strArr, message));
 }
 
 function getSocket() {
@@ -152,4 +137,4 @@ function closeSocket() {
     socket.close();
 }
 
-export default { setup, start, getSocket, sendMessage, closeSocket };
+export default { start, getSocket, sendMessage, closeSocket };

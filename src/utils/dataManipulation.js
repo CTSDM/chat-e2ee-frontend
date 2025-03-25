@@ -16,10 +16,6 @@ function stringToUint8Array(str, targetLength) {
     return new Uint8Array([...new Array(targetLength - arr.length), ...arr]);
 }
 
-function stringToArrBuffer(str) {
-    return stringToUint8Array(str).buffer;
-}
-
 function arrBufferToString(arrBuffer) {
     const arr = new Uint8Array(arrBuffer);
     const strEncodedArr = arr.filter((value) => value !== 0);
@@ -109,7 +105,6 @@ export default {
     objArrToUint8Arr,
     objToArrBuffer,
     hexStringToUint8Array,
-    stringToArrBuffer,
     arrBufferToString,
     stringToUint8Array,
     Uint8ArrayToJSON,

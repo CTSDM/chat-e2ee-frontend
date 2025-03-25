@@ -73,6 +73,9 @@ const env = {
                 message: import.meta.env.VITE_PASSWORD_REGEX_MESSAGE,
             },
         },
+        group: {
+            maxLength: 50,
+        },
     },
     serverUrl: import.meta.env.VITE_SERVER,
     wsUrl: import.meta.env.VITE_WS_SERVER,

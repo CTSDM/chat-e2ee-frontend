@@ -23,6 +23,7 @@ function Homepage() {
         contactList,
         chatMessages,
         setChatMessages,
+        symmetricKey,
         userVars,
     } = useContext(Context);
 
@@ -130,26 +131,82 @@ function Homepage() {
     async function onSubmitCreateGroup(usernamesArr, groupName) {
         //we add the group to the contact list, we use a uuid as the id
         //at the end we update the target
-        const id = uuidv4();
-        setCurrentTarget(id);
-        contactList.current[id] = {
+        const groupID = uuidv4();
+        // the current user will register itself to the group
+        // and then it will send a new symmetric key encrypted to the server for storage
+        // flagbyte 3 register, flagbyte 4 send encrypted key with DH to the database
+        // flagbyte 5 save encrypted key to the database. Each user will do this step from their front end
+        const userMaxLength = env.validation.users.username.maxLength;
+        const groupMaxLength = env.validation.group.maxLength;
+        ws.sendMessage(
+            10,
+            groupID,
+            dataManipulation.stringToUint8Array(groupName, groupMaxLength).buffer,
+        );
+        ws.sendMessage(
+            3,
+            groupID,
+            dataManipulation.stringToUint8Array(publicUsername.toLowerCase(), userMaxLength).buffer,
+        );
+        // create new symmetric key
+        const keySymmetricGroup = await cryptoUtils.getAESGCMkey();
+        contactList.current[groupID] = {
             // username will be the group name
             username: groupName,
             type: "group",
+            key: keySymmetricGroup,
         };
+        const keyRAW = await cryptoUtils.getExportedKeyRaw(keySymmetricGroup);
+        // encrypt the key with the current symmetric key --> send to the server
+        // with each user other than the current one, we encrypt the message using the derived symm key --> send to the server
+        const iv = cryptoUtils.getRandomValues(12);
+        const chatGroupKeyEncrypted = await cryptoUtils.getEncryptedMessage(
+            symmetricKey,
+            {
+                name: "AES-GCM",
+                iv: iv,
+            },
+            keyRAW,
+        );
+        // we send the key to the server
+        const keyUserData = dataManipulation.groupBuffers([iv.buffer, chatGroupKeyEncrypted]);
+        ws.sendMessage(5, groupID, keyUserData);
+        usernamesArr.forEach(async (username) => {
+            const usernameBuffer = dataManipulation.stringToUint8Array(
+                username,
+                userMaxLength,
+            ).buffer;
+            ws.sendMessage(3, groupID, usernameBuffer);
+            const iv = cryptoUtils.getRandomValues(12);
+            const chatGroupKeyEncrypted = await cryptoUtils.getEncryptedMessage(
+                contactList.current[username].key,
+                {
+                    name: "AES-GCM",
+                    iv,
+                },
+                keyRAW,
+            );
+            const keyUserData = dataManipulation.groupBuffers([
+                usernameBuffer,
+                iv.buffer,
+                chatGroupKeyEncrypted,
+            ]);
+            // send the key to the user
+            ws.sendMessage(4, groupID, keyUserData);
+        });
+        setCurrentTarget(groupID);
         setChatMessages((previousChatMessages) => {
             const newChatMessages = structuredClone(previousChatMessages);
-            newChatMessages[id] = {
+            newChatMessages[groupID] = {
                 name: groupName,
                 messages: {},
             };
             return newChatMessages;
         });
-        setCurrentTarget(id);
     }
 
     async function handleSubmitMessage(message) {
-        const iv = new Uint8Array(12);
+        const iv = cryptoUtils.getRandomValues(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
             contactList.current[currentTarget].key,
@@ -192,7 +249,7 @@ function Homepage() {
                 messages[key].author === chatMessages[currentTarget].name
             ) {
                 changeMade = true;
-                const iv = new Uint8Array(12);
+                const iv = cryptoUtils.getRandomValues(12);
                 const idEncrypted = await cryptoUtils.getEncryptedMessage(
                     contactList.current[currentTarget].key,
                     { name: "AES-GCM", iv },

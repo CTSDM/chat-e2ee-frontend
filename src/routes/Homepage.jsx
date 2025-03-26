@@ -221,11 +221,10 @@ function Homepage() {
             [currentTarget]: contactList.current[currentTarget],
             ...contactList.current,
         };
-        ws.sendMessage(
-            1,
-            currentTarget,
-            dataManipulation.groupBuffers([iv.buffer, messageEncrypted]),
-        );
+        const usernameBuff = dataManipulation.stringToUint8Array(publicUsername.toLowerCase(), 16);
+        const data = dataManipulation.groupBuffers([usernameBuff, iv.buffer, messageEncrypted]);
+        let flagByte = contactList.current[currentTarget].type === "user" ? 1 : 6;
+        ws.sendMessage(flagByte, currentTarget, data);
         setChatMessages((previousMessages) => {
             const newMessages = structuredClone(previousMessages);
             newMessages[currentTarget].messages[id] = {
@@ -256,11 +255,12 @@ function Homepage() {
                     key,
                 );
                 messages[key].read = true;
-                ws.sendMessage(
-                    2,
-                    currentTarget,
-                    dataManipulation.groupBuffers([iv.buffer, idEncrypted]),
+                const usernameBuff = dataManipulation.stringToUint8Array(
+                    publicUsername.toLowerCase(),
+                    16,
                 );
+                const data = dataManipulation.groupBuffers([usernameBuff, iv.buffer, idEncrypted]);
+                ws.sendMessage(2, currentTarget, data);
             }
             if (changeMade) {
                 setChatMessages((previousChatMessages) => {

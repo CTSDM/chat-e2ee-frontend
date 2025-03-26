@@ -96,19 +96,48 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 });
             }
             // we need to decrypt now!
-            const ivBuffer = data.slice(48, 60);
+            const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
+            const ivBuffer = data.slice(64, 76);
             const messageDecrypted = await cryptoUtils.getDecryptedMessage(
                 sharedKey,
                 { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
-                data.slice(60),
+                data.slice(76),
             );
             const id = messageDecrypted.slice(0, 36);
             if (codeMessage === 1) {
                 const message = messageDecrypted.slice(36);
+                // we need to make sure that the current sender is in our contactlist
+                if (contactList.current[sender] === undefined) {
+                    const response = await requests.getPublicKey(sender);
+                    const commonSalt = dataManipulation.xorArray(
+                        userVars.current.salt,
+                        response.salt,
+                    );
+                    const targetOriginal = response.publicUsernameOriginalCase;
+                    const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
+                    const publicKeyJWK = JSON.parse(
+                        dataManipulation.Uint8ArrayToStr(publicKeyJWKArr),
+                    );
+                    const publicKey = await cryptoUtils.importKey(
+                        publicKeyJWK,
+                        { name: "ECDH", namedCurve: "P-256" },
+                        [],
+                    );
+                    const key = await cryptoUtils.getSymmetricKey(
+                        publicKey,
+                        selfPrivateKey,
+                        commonSalt,
+                    );
+                    contactList.current[sender] = {
+                        type: "user",
+                        key: key,
+                        username: targetOriginal,
+                    };
+                }
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     newChatMessages[username].messages[id] = {
-                        author: newChatMessages[username].name,
+                        author: contactList.current[sender].username,
                         content: message,
                         createdAt: new Date(),
                         // receiving a message does not mean the message has been read

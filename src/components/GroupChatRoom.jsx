@@ -2,10 +2,10 @@ import PropTypes from "prop-types";
 import FormSimple from "./FormSimple.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
-import styles from "./ChatRoom.module.css";
+import styles from "./GroupChatRoom.module.css";
 import { useEffect, useRef } from "react";
 
-function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
+function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, groupName, members }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
@@ -46,20 +46,27 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
 
     return (
         <div className={styles.container}>
-            <div className={styles.contact}>{target}</div>
+            <div className={styles.contact}>
+                {groupName} / {`${members.length} members`}
+            </div>
             <div className={styles.messagesContainer}>
-                {messagesArr.map((message, index) => (
-                    <MessageBubble
-                        key={messagesId[index]}
-                        id={messagesId[index]}
-                        message={message.content}
-                        author={message.author}
-                        date={message.createdAt}
-                        isRead={message.read}
-                        username={username}
-                        showAuthor={false}
-                    />
-                ))}
+                {messagesArr.map((message, index) => {
+                    const readBy = message.readBy;
+                    const isRead =
+                        typeof readBy === "object" && readBy.length === members.length - 1;
+                    return (
+                        <MessageBubble
+                            id={messagesId[index]}
+                            key={messagesId[index]}
+                            message={message.content}
+                            author={message.author}
+                            date={message.createdAt}
+                            isRead={isRead}
+                            username={username}
+                            showAuthor={true}
+                        />
+                    );
+                })}
             </div>
             <div className={styles.form}>
                 <FormSimple
@@ -73,19 +80,20 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
     );
 }
 
-ChatRoom.propTypes = {
-    target: PropTypes.string,
+GroupChatRoom.propTypes = {
+    members: PropTypes.array,
+    groupName: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     messages: PropTypes.objectOf(
         PropTypes.shape({
             author: PropTypes.string.isRequired,
             content: PropTypes.string.isRequired,
             createdAt: PropTypes.object.isRequired,
-            read: PropTypes.bool.isRequired,
-        }).isRequired,
+            readBy: PropTypes.oneOfType([PropTypes.array, PropTypes.string]).isRequired,
+        }),
     ).isRequired,
     handleOnSubmit: PropTypes.func.isRequired,
     handleOnRender: PropTypes.func.isRequired,
 };
 
-export default ChatRoom;
+export default GroupChatRoom;

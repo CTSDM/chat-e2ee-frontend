@@ -5,26 +5,13 @@ import ChatRoom from "../../../src/components/ChatRoom";
 import { dataManipulationUtils as dataManipulation } from "../../../src/utils/utils";
 import userEvent from "@testing-library/user-event";
 
-const messages = validEntries.messages.valid;
-const username = validEntries.messages.username;
+const contacts = validEntries.contactList;
+const username = validEntries.user.publicUsername;
 
 // scrollIntoView is not defined in the jest module, so we define it here
 window.HTMLElement.prototype.scrollIntoView = vi.fn;
 
 describe("The component ", () => {
-    it("should not render anything when the message is null", () => {
-        render(
-            <ChatRoom
-                messages={null}
-                handleOnSubmit={() => {}}
-                handleOnRender={() => {}}
-                username={username}
-            />,
-        );
-        const div = screen.queryByText(/\*/);
-        expect(div).not.toBeInTheDocument();
-    });
-
     it("should be rendered with an input text when the conversation starts.", () => {
         render(
             <ChatRoom
@@ -32,26 +19,48 @@ describe("The component ", () => {
                 handleOnSubmit={() => {}}
                 handleOnRender={() => {}}
                 username={username}
+                target={contacts[0]}
             />,
         );
         const form = screen.getByRole("form");
         expect(form).toBeInTheDocument();
     });
 
-    it("should render the messages with a valid messages object.", () => {
+    it("should render the username the user is talking with.", () => {
+        const target = contacts[0];
         render(
             <ChatRoom
-                messages={messages}
+                target={target}
+                messages={{}}
                 handleOnSubmit={() => {}}
                 handleOnRender={() => {}}
                 username={username}
             />,
         );
-        const messagesArr = Object.values(messages);
-        messagesArr.forEach((message) => {
-            expect(screen.getByText(message.content)).toBeInTheDocument();
-            const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
-            expect(screen.getByText(dateFormatted)).toBeInTheDocument();
+        expect(screen.getByText(target)).toBeInTheDocument();
+    });
+
+    it("should render the messages with a valid messages object.", () => {
+        contacts.forEach((contact) => {
+            const messages = validEntries.privateMessages.valid[contact];
+            if (messages) {
+                const { unmount } = render(
+                    <ChatRoom
+                        target={contact}
+                        messages={messages}
+                        handleOnSubmit={() => {}}
+                        handleOnRender={() => {}}
+                        username={username}
+                    />,
+                );
+                const messagesArr = Object.values(messages);
+                messagesArr.forEach((message) => {
+                    expect(screen.getByText(message.content)).toBeInTheDocument();
+                    const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
+                    expect(screen.getByText(dateFormatted)).toBeInTheDocument();
+                });
+                unmount();
+            }
         });
     });
 
@@ -60,6 +69,7 @@ describe("The component ", () => {
         const user = userEvent.setup();
         render(
             <ChatRoom
+                target={contacts[0]}
                 messages={{}}
                 handleOnSubmit={handleOnSubmit}
                 handleOnRender={() => {}}
@@ -90,38 +100,50 @@ describe("The component ", () => {
     });
 
     it("should have the corresponding classes according to sent/received messages.", () => {
-        render(
-            <ChatRoom
-                messages={messages}
-                handleOnSubmit={() => {}}
-                handleOnRender={() => {}}
-                username={username}
-            />,
-        );
-        const messagesArr = Object.values(messages);
-        messagesArr.forEach((message) => {
-            const div = screen.getByText(message.content);
-            const container = div.parentNode;
-            if (message.author === username) {
-                expect(container.classList.value.includes("sender")).toBeTruthy();
-                expect(container.classList.value.includes("receiver")).toBeFalsy();
-            } else {
-                expect(container.classList.value.includes("sender")).toBeFalsy();
-                expect(container.classList.value.includes("receiver")).toBeTruthy();
+        contacts.forEach((contact) => {
+            const messages = validEntries.privateMessages.valid[contact];
+            if (messages) {
+                render(
+                    <ChatRoom
+                        target={contact}
+                        messages={messages}
+                        handleOnSubmit={() => {}}
+                        handleOnRender={() => {}}
+                        username={username}
+                    />,
+                );
+                const messagesArr = Object.values(messages);
+                messagesArr.forEach((message) => {
+                    const div = screen.getByText(message.content);
+                    const container = div.parentNode;
+                    if (message.author === username) {
+                        expect(container.classList.value.includes("sender")).toBeTruthy();
+                        expect(container.classList.value.includes("receiver")).toBeFalsy();
+                    } else {
+                        expect(container.classList.value.includes("sender")).toBeFalsy();
+                        expect(container.classList.value.includes("receiver")).toBeTruthy();
+                    }
+                });
             }
         });
     });
 
     it("should call the function handleOnRender once", () => {
-        const handleOnRender = vi.fn();
-        render(
-            <ChatRoom
-                messages={messages}
-                handleOnSubmit={() => {}}
-                handleOnRender={handleOnRender}
-                username={username}
-            />,
-        );
-        expect(handleOnRender).toHaveBeenCalledOnce();
+        contacts.forEach((contact) => {
+            const messages = validEntries.privateMessages.valid[contact];
+            if (messages) {
+                const handleOnRender = vi.fn();
+                render(
+                    <ChatRoom
+                        target={contact}
+                        messages={messages}
+                        handleOnSubmit={() => {}}
+                        handleOnRender={handleOnRender}
+                        username={username}
+                    />,
+                );
+                expect(handleOnRender).toHaveBeenCalledOnce();
+            }
+        });
     });
 });

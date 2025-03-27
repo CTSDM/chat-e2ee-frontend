@@ -1,0 +1,28 @@
+.container {
+  min-height: 200px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.form {
+  align-self: self-end;
+}
+
+.messagesContainer {
+  background-color: #0E1621;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 0px;
+  overflow-y: auto;
+}
+
+.contact {
+  padding: 5px;
+  background: #17212b;
+  height: fit-content;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+}

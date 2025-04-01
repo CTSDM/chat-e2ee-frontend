@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
 
-function Homepage() {
+export default function Homepage() {
     const {
         publicUsername,
         isLogged,
@@ -29,9 +29,11 @@ function Homepage() {
     const [widthSidebar, setWidthSidebar] = useState(400);
     const [errMessages, setErrMessages] = useState(null);
     const isResize = useRef(false);
+    const [currentTarget, setCurrentTarget] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
+        // resizing the handler
         const handleMouseMove = (e) => {
             if (isResize.current) {
                 setWidthSidebar((previousWidth) => previousWidth + e.movementX);
@@ -42,18 +44,44 @@ function Homepage() {
         };
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp);
+        // retry the websocket connection
+        const intervalId = setInterval(startWebSocket, 2000);
         return () => {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
+            window.clearTimeout(intervalId);
         };
     }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => setErrMessages(null), 2000);
         return () => clearTimeout(timer);
-    }, [errMessages]);
+    }, [setErrMessages]);
 
     useEffect(() => {
+        startWebSocket(
+            publicUsername,
+            privateKey,
+            contactList,
+            setChatMessages,
+            userVars,
+            ws,
+            isLogged,
+        );
+        // for now we empty the message array when a new connection is established
+    }, [publicUsername, privateKey, contactList, setChatMessages, userVars, isLogged]);
+
+    useEffect(() => {
+        if (isLogged === false || privateKey === null) {
+            navigate("/login");
+        }
+    });
+
+    if (isLogged === false || privateKey === null) {
+        return null;
+    }
+
+    function startWebSocket() {
         if (ws.getSocket() === null && isLogged) {
             ws.start(
                 publicUsername,
@@ -64,18 +92,6 @@ function Homepage() {
                 userVars,
             );
         }
-        // for now we empty the message array when a new connection is established
-    }, [publicUsername, privateKey, contactList, setChatMessages, isLogged, userVars]);
-    const [currentTarget, setCurrentTarget] = useState(null);
-
-    useEffect(() => {
-        if (isLogged === false || privateKey === null) {
-            navigate("/login");
-        }
-    });
-
-    if (isLogged === false || privateKey === null) {
-        return null;
     }
 
     async function handleNewConnection(typedPublicUsername) {
@@ -291,5 +307,3 @@ function getContacts(obj) {
     }
     return arr;
 }
-
-export default Homepage;

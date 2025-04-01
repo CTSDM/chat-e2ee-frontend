@@ -20,6 +20,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         // we add a byte 0 at the beginning to show that it is setup message
         socket.send(dataManipulation.addByteFlag(0, [], msgBuffer));
     });
+    socket.addEventListener("close", () => console.log("closing connection"));
     socket.addEventListener("message", async (event) => {
         // the server will always send an array buffer
         let codeMessage;
@@ -188,6 +189,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             );
             const key = await cryptoUtils.importKeyAESGCM(new Uint8Array(keyRaw));
             contactList.current[username] = {
+                members: [],
                 type: "group",
                 username: name,
                 key: key,

@@ -12,8 +12,12 @@ function objToArrBuffer(obj) {
 function stringToUint8Array(str, targetLength) {
     const enc = new TextEncoder();
     const arr = enc.encode(str);
-    // we pad with array of 0 a new uint8array, in case it is needed
-    return new Uint8Array([...new Array(targetLength - arr.length), ...arr]);
+    if (targetLength) {
+        // we pad with array of 0 a new uint8array, in case it is needed
+        return new Uint8Array([...new Array(targetLength - arr.length), ...arr]);
+    } else {
+        return arr;
+    }
 }
 
 function arrBufferToString(arrBuffer) {

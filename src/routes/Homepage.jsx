@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useRef } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewMessages from "../components/PreviewMessages.jsx";
 import ChatRoom from "../components/ChatRoom.jsx";
+import GroupChatRoom from "../components/GroupChatRoom.jsx";
 import ButtonDialog from "../components/ButtonDialog.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";
 import CreateGroup from "../components/CreateGroup.jsx";
@@ -153,6 +154,7 @@ function Homepage() {
         contactList.current[groupID] = {
             // username will be the group name
             username: groupName,
+            members: [publicUsername, ...usernamesArr],
             type: "group",
             key: keySymmetricGroup,
         };
@@ -215,14 +217,20 @@ function Homepage() {
                 iv,
             },
             // we encrypt the id and the message together
-            id + message,
+            message,
         );
         contactList.current = {
             [currentTarget]: contactList.current[currentTarget],
             ...contactList.current,
         };
         const usernameBuff = dataManipulation.stringToUint8Array(publicUsername.toLowerCase(), 16);
-        const data = dataManipulation.groupBuffers([usernameBuff, iv.buffer, messageEncrypted]);
+        const idBuff = dataManipulation.stringToUint8Array(id);
+        const data = dataManipulation.groupBuffers([
+            usernameBuff.buffer,
+            idBuff.buffer,
+            iv.buffer,
+            messageEncrypted,
+        ]);
         let flagByte = contactList.current[currentTarget].type === "user" ? 1 : 6;
         ws.sendMessage(flagByte, currentTarget, data);
         setChatMessages((previousMessages) => {
@@ -318,13 +326,28 @@ function Homepage() {
                 onMouseDown={() => (isResize.current = true)}
             ></div>
             <div className={styles.rightSide}>
-                <ChatRoom
-                    target={currentTarget && contactList.current[currentTarget].username}
-                    messages={chatRoomMessages}
-                    handleOnSubmit={handleSubmitMessage}
-                    handleOnRender={readMessages}
-                    username={publicUsername}
-                />
+                {currentTarget ? (
+                    contactList.current[currentTarget].type === "group" ? (
+                        <GroupChatRoom
+                            groupName={currentTarget && contactList.current[currentTarget].username}
+                            members={currentTarget && contactList.current[currentTarget].members}
+                            messages={chatRoomMessages}
+                            handleOnSubmit={handleSubmitMessage}
+                            handleOnRender={readMessages}
+                            username={publicUsername}
+                        />
+                    ) : (
+                        <ChatRoom
+                            target={currentTarget && contactList.current[currentTarget].username}
+                            messages={chatRoomMessages}
+                            handleOnSubmit={handleSubmitMessage}
+                            handleOnRender={readMessages}
+                            username={publicUsername}
+                        />
+                    )
+                ) : (
+                    <div></div>
+                )}
             </div>
         </div>
     );

@@ -26,7 +26,7 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
         dialog.showModal();
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -34,7 +34,7 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
         const valuesArr = formData.getAll("username");
         if (valuesArr.length > 0) {
             const groupName = formData.get("group");
-            onSubmit(valuesArr, groupName);
+            await onSubmit(valuesArr, groupName);
             cancelSubmit(e);
         } else {
             setInfo("Please select at least one contact");

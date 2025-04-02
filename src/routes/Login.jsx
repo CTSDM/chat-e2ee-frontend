@@ -16,6 +16,7 @@ export default function Login() {
         setPublicUsername,
         setPrivateKey,
         setPublicKey,
+        setSymmetricKey,
         privateKey,
         userVars,
         message: refMessage,
@@ -75,13 +76,14 @@ export default function Login() {
         // set the key
         (async () => {
             try {
-                const key = await cryptoUtils.importPrivateKeyEncrypted(
+                const { privateKey, symmetricKey } = await cryptoUtils.importPrivateKeyEncrypted(
                     userVars.current.privateKeyEncrypted,
                     password,
                     userVars.current.salt,
                     userVars.current.iv,
                 );
-                setPrivateKey(key);
+                setPrivateKey(privateKey);
+                setSymmetricKey(symmetricKey);
                 navigate("/");
             } catch (err) {
                 console.log(err);

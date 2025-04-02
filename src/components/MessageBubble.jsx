@@ -5,7 +5,7 @@ import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 import styles from "./MessageBubble.module.css";
 
-export default function MessageBubble({ message, author, username, date, isRead }) {
+export default function MessageBubble({ id, message, author, username, date, isRead, showAuthor }) {
     const messageRef = useRef(null);
     const dateFormatted = dataManipulation.getDateFormatted(date);
     let content;
@@ -24,14 +24,17 @@ export default function MessageBubble({ message, author, username, date, isRead 
         messageRef.current.scrollIntoView();
     }, []);
 
-    const readStatusObj = {
-        src: isRead ? readImg : notReadImg,
-        alt: isRead ? "read" : "not yet read",
-    };
+    const readStatusObj = { src: notReadImg, alt: "not yet read" };
+
+    if (isRead === true) {
+        readStatusObj.src = readImg;
+        readStatusObj.alt = "read";
+    }
 
     return (
         <div className={styles.container} ref={messageRef}>
-            <div className={classMessage}>
+            <div id={id} data-testid={id} className={classMessage}>
+                {showAuthor && !isAuthSender ? <div className={styles.author}>{author}</div> : null}
                 <div className={styles.content}>{content}</div>
                 <div className={styles.info}>
                     <div className={styles.time}>{dateFormatted}</div>
@@ -55,10 +58,12 @@ export default function MessageBubble({ message, author, username, date, isRead 
 }
 
 MessageBubble.propTypes = {
+    id: PropTypes.string.isRequired,
     date: PropTypes.object.isRequired,
     username: PropTypes.string.isRequired,
     author: PropTypes.string.isRequired,
     isRead: PropTypes.bool.isRequired,
     // In case the message is an image we check if the message is an object.
     message: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
+    showAuthor: PropTypes.bool.isRequired,
 };

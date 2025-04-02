@@ -60,11 +60,15 @@ async function getKeyPairPrivateEncrypted(key, iv) {
     return [publicKeyExported, privateKeyEncryptedExported];
 }
 
-async function getEncryptedMessage(key, algorithmObj, dataString) {
-    // the data coming here comes as string
-    const enc = new TextEncoder();
-    const data = enc.encode(dataString);
-    return await window.crypto.subtle.encrypt(algorithmObj, key, data);
+async function getEncryptedMessage(key, algorithmObj, data) {
+    // the data coming here can be either string or Uint8Array
+    if (typeof data === "string") {
+        const enc = new TextEncoder();
+        const dataFormatted = enc.encode(data);
+        return await window.crypto.subtle.encrypt(algorithmObj, key, dataFormatted);
+    } else {
+        return await window.crypto.subtle.encrypt(algorithmObj, key, data);
+    }
 }
 
 async function getDecryptedMessage(key, algorithmObj, data) {
@@ -76,6 +80,10 @@ async function getDecryptedMessage(key, algorithmObj, data) {
 async function getExportedKeyString(key) {
     const keyExported = await window.crypto.subtle.exportKey("jwk", key);
     return JSON.stringify(keyExported);
+}
+
+async function getExportedKeyRaw(key) {
+    return await window.crypto.subtle.exportKey("raw", key);
 }
 
 function getRandomValues(length) {
@@ -109,7 +117,7 @@ async function importPrivateKeyEncrypted(keyEncrypted, password, salt, iv) {
         "deriveKey",
         "deriveBits",
     ]);
-    return privateKey;
+    return { privateKey, symmetricKey: key };
 }
 
 async function deriveSecretKey(privateKey, publicKey) {
@@ -139,8 +147,27 @@ async function getSymmetricKey(publicKey, selfPrivateKey, salt) {
     return key;
 }
 
+async function getAESGCMkey() {
+    return await window.crypto.subtle.generateKey(
+        {
+            name: "AES-GCM",
+            length: 256,
+        },
+        true,
+        ["encrypt", "decrypt"],
+    );
+}
+
+async function importKeyAESGCM(key) {
+    return await window.crypto.subtle.importKey("raw", key, "AES-GCM", true, [
+        "encrypt",
+        "decrypt",
+    ]);
+}
+
 export default {
     getRandomValues,
+    getAESGCMkey,
     getDecryptedMessage,
     getEncryptionKey,
     getKeyPairPrivateEncrypted,
@@ -148,4 +175,6 @@ export default {
     importPrivateKeyEncrypted,
     getEncryptedMessage,
     getSymmetricKey,
+    getExportedKeyRaw,
+    importKeyAESGCM,
 };

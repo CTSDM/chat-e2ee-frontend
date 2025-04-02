@@ -8,10 +8,17 @@ let socket = null;
 function start(publicUsername, selfPrivateKey, contactList, setChatMessages, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     socket.binaryType = "arraybuffer";
-    socket.addEventListener("error", (err) => {
-        console.error("WebSocket error: ", err);
-    });
-    socket.addEventListener("open", () => {
+    socket.addEventListener("error", onError);
+    socket.addEventListener("open", onOpen);
+    socket.addEventListener("close", onClose);
+    socket.addEventListener("message", onMessage);
+
+    function onError(err) {
+        console.error("Websocket error: ", err);
+    }
+
+    function onOpen() {
+        console.log("Connection established.");
         const msg = {
             type: "start",
             publicUsername: publicUsername.toLowerCase(),
@@ -19,23 +26,19 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         const msgBuffer = dataManipulation.objToArrBuffer(msg);
         // we add a byte 0 at the beginning to show that it is setup message
         socket.send(dataManipulation.addByteFlag(0, [], msgBuffer));
-    });
-    socket.addEventListener("message", async (event) => {
+    }
+
+    function onClose() {
+        socket.removeEventListener("open", onOpen);
+        socket.removeEventListener("close", onClose);
+        socket.removeEventListener("message", onMessage);
+        socket = null;
+    }
+
+    async function onMessage(event) {
         // the server will always send an array buffer
-        let codeMessage;
         const tempData = event.data;
-        if (tempData.byteLength === 2) {
-            const code = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
-            if (code === 100) {
-                console.log("Connection not allowed");
-                return;
-            } else {
-                console.log("connection set");
-                return;
-            }
-        } else {
-            codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
-        }
+        const codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
         if (codeMessage > 100) {
             console.log("Unspecified code.");
             return;
@@ -120,7 +123,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 return newChatMessages;
             });
         }
-    });
+    }
 }
 
 // this function expects ArrBuffer
@@ -138,6 +141,7 @@ function getSocket() {
 }
 
 function closeSocket() {
+    console.log("Closing the websocket connection.");
     socket.close();
 }
 

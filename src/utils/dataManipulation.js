@@ -97,8 +97,14 @@ function groupBuffers(buffArr) {
     return new Uint8Array(arr).buffer;
 }
 
+function getDateFromBuffer(buff) {
+    const dateStr = arrBufferToString(buff);
+    return new Date(parseInt(dateStr));
+}
+
 export default {
     groupBuffers,
+    getDateFromBuffer,
     getNumFromBuffer,
     addByteFlag,
     getLengthArrofArr,

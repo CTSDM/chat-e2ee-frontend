@@ -7,6 +7,7 @@ let socket = null;
 
 function start(publicUsername, selfPrivateKey, contactList, setChatMessages, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
+    // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
     socket.addEventListener("error", onError);
     socket.addEventListener("open", onOpen);
@@ -39,19 +40,12 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         // the server will always send an array buffer
         const tempData = event.data;
         const codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
-        if (codeMessage > 100) {
-            console.log("Unspecified code.");
-            return;
-        }
+        // codeMessage: 1 for direct message; 2 acknowledge for reading the message
         const data = event.data.slice(1);
-        // 16 first bytes for the user
-        // the next 512 bytes for the message
-        // at this point we check if we have the user in the contact list
-        // if we dont have we request the key through the api
-        // we decode the incoming messages with our private key; we dont need the sender's public key
-        const username = dataManipulation.arrBufferToString(data.slice(0, 48));
-        let sharedKey;
+        // the first 48 bytes from data are for the context of the message
         if (codeMessage < 3) {
+            const username = dataManipulation.arrBufferToString(data.slice(0, 48));
+            let sharedKey;
             if (contactList.current[username]) {
                 sharedKey = contactList.current[username].key;
                 if (codeMessage === 1) {
@@ -62,11 +56,9 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 }
             } else {
                 // we request the contactList through the API
-                // we can do this synchronously // it shouldnt take that much time either way
-                // or we do it async and just calculate it in the background
                 const response = await requests.getPublicKey(username);
                 const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
-                const targetOriginal = response.publicUsernameOriginalCase;
+                const usernameOC = response.publicUsername;
                 const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                 const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
                 const publicKey = await cryptoUtils.importKey(
@@ -81,34 +73,35 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 );
                 if (codeMessage === 1) {
                     contactList.current = {
-                        [username]: { key: sharedKey, username: targetOriginal, type: "user" },
+                        [username]: { key: sharedKey, username: usernameOC, type: "user" },
                         ...contactList.current,
                     };
                 } else if (codeMessage === 2) {
                     contactList.current[username] = {
                         key: sharedKey,
-                        username: targetOriginal,
+                        username: usernameOC,
                         type: "user",
                     };
                 }
                 // since this would be the first message, we prepare the object
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username] = { name: targetOriginal, messages: {} };
+                    newChatMessages[username] = { name: usernameOC, messages: {} };
                     return newChatMessages;
                 });
             }
             // we need to decrypt now!
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
-            const ivBuffer = data.slice(64, 76);
-            const messageDecrypted = await cryptoUtils.getDecryptedMessage(
-                sharedKey,
-                { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
-                data.slice(76),
-            );
-            const id = messageDecrypted.slice(0, 36);
+            const messageId = dataManipulation.arrBufferToString(data.slice(64, 100));
             if (codeMessage === 1) {
-                const message = messageDecrypted.slice(36);
+                const messageDate = dataManipulation.getDateFromBuffer(data.slice(100, 116));
+                const ivBuffer = data.slice(116, 128);
+                const messageDecrypted = await cryptoUtils.getDecryptedMessage(
+                    sharedKey,
+                    { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
+                    data.slice(128),
+                );
+                const message = messageDecrypted;
                 // we need to make sure that the current sender is in our contactlist
                 if (contactList.current[sender] === undefined) {
                     const response = await requests.getPublicKey(sender);
@@ -116,7 +109,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                         userVars.current.salt,
                         response.salt,
                     );
-                    const targetOriginal = response.publicUsernameOriginalCase;
+                    const usernameOC = response.publicUsername;
                     const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                     const publicKeyJWK = JSON.parse(
                         dataManipulation.Uint8ArrayToStr(publicKeyJWKArr),
@@ -134,15 +127,15 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     contactList.current[sender] = {
                         type: "user",
                         key: key,
-                        username: targetOriginal,
+                        username: usernameOC,
                     };
                 }
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[id] = {
+                    newChatMessages[username].messages[messageId] = {
                         author: contactList.current[sender].username,
                         content: message,
-                        createdAt: new Date(),
+                        createdAt: messageDate,
                         // receiving a message does not mean the message has been read
                         read: false,
                     };
@@ -153,7 +146,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 setChatMessages((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[id].read = true;
+                    newChatMessages[username].messages[messageId].read = true;
                     return newChatMessages;
                 });
             }
@@ -166,7 +159,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             if (contactList.current[sender] === undefined) {
                 const response = await requests.getPublicKey(sender);
                 const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
-                const targetOriginal = response.publicUsernameOriginalCase;
+                const usernameOC = response.publicUsername;
                 const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                 const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
                 const publicKey = await cryptoUtils.importKey(
@@ -180,7 +173,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     commonSalt,
                 );
                 contactList.current = {
-                    [sender]: { key: sharedKey, username: targetOriginal, type: "user" },
+                    [sender]: { key: sharedKey, username: usernameOC, type: "user" },
                     ...contactList.current,
                 };
             }

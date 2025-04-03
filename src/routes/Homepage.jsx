@@ -105,7 +105,7 @@ export default function Homepage() {
                 dataManipulation.objArrToUint8Arr(response.salt),
             );
             const targetPublicUsername = response.publicUsername;
-            const targetPublicUsernameOriginalCase = response.publicUsernameOriginalCase;
+            const targetPublicUsernameLC = targetPublicUsername.toLowerCase();
             const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
             const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
             const otherPublicKey = await cryptoUtils.importKey(
@@ -114,19 +114,19 @@ export default function Homepage() {
                 [],
             );
             const sharedKey = await cryptoUtils.getSymmetricKey(otherPublicKey, privateKey, salt);
-            contactList.current[targetPublicUsername] = {
-                username: targetPublicUsernameOriginalCase,
+            contactList.current[targetPublicUsernameLC] = {
+                username: targetPublicUsername,
                 key: sharedKey,
                 type: "user",
             };
-            setCurrentTarget(targetPublicUsername);
+            setCurrentTarget(targetPublicUsernameLC);
             // we load the chatroom
             // we should receive the messages
-            if (chatMessages[targetPublicUsername] === undefined) {
+            if (chatMessages[targetPublicUsernameLC] === undefined) {
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[targetPublicUsername] = {
-                        name: targetPublicUsernameOriginalCase,
+                    newChatMessages[targetPublicUsernameLC] = {
+                        name: targetPublicUsername,
                         messages: {},
                     };
                     return newChatMessages;
@@ -224,6 +224,8 @@ export default function Homepage() {
     }
 
     async function handleSubmitMessage(message) {
+        const dateString = new Date().getTime().toString();
+        const dateBuff = dataManipulation.stringToUint8Array(dateString, 16);
         const iv = cryptoUtils.getRandomValues(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
@@ -244,6 +246,7 @@ export default function Homepage() {
         const data = dataManipulation.groupBuffers([
             usernameBuff.buffer,
             idBuff.buffer,
+            dateBuff.buffer,
             iv.buffer,
             messageEncrypted,
         ]);
@@ -265,28 +268,19 @@ export default function Homepage() {
     async function readMessages(messages) {
         // messages is an obj
         // we are reading the messages of the currentTarget
-        let changeMade = false;
-        for (let key in messages) {
+        for (let messageId in messages) {
             if (
-                messages[key].read === false &&
-                messages[key].author === chatMessages[currentTarget].name
+                messages[messageId].read === false &&
+                messages[messageId].author === chatMessages[currentTarget].name
             ) {
-                changeMade = true;
-                const iv = cryptoUtils.getRandomValues(12);
-                const idEncrypted = await cryptoUtils.getEncryptedMessage(
-                    contactList.current[currentTarget].key,
-                    { name: "AES-GCM", iv },
-                    key,
-                );
-                messages[key].read = true;
+                messages[messageId].read = true;
                 const usernameBuff = dataManipulation.stringToUint8Array(
                     publicUsername.toLowerCase(),
                     16,
                 );
-                const data = dataManipulation.groupBuffers([usernameBuff, iv.buffer, idEncrypted]);
+                const messageIdBuff = dataManipulation.stringToUint8Array(messageId);
+                const data = dataManipulation.groupBuffers([usernameBuff, messageIdBuff]);
                 ws.sendMessage(2, currentTarget, data);
-            }
-            if (changeMade) {
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     newChatMessages[currentTarget].messages = messages;

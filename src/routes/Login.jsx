@@ -43,7 +43,7 @@ export default function Login() {
                 setInfo("The authentication was successful.");
                 setIsLogged(true);
                 setPrivateUsername(response.privateUsername);
-                setPublicUsername(response.publicUsernameOriginalCase);
+                setPublicUsername(response.publicUsername);
                 (async () => {
                     const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
                     const publicKeyJWK = JSON.parse(

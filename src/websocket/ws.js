@@ -13,6 +13,8 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
     socket.addEventListener("open", onOpen);
     socket.addEventListener("close", onClose);
     socket.addEventListener("message", onMessage);
+    const reqPromisesHandler = {};
+    const cryptoPromisesHandler = {};
 
     function onError(err) {
         console.error("Websocket error: ", err);
@@ -56,21 +58,25 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 }
             } else {
                 // we request the contactList through the API
-                const response = await requests.getPublicKey(username);
-                const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
-                const usernameOC = response.publicUsername;
-                const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
-                const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
-                const publicKey = await cryptoUtils.importKey(
-                    publicKeyJWK,
-                    { name: "ECDH", namedCurve: "P-256" },
-                    [],
-                );
-                sharedKey = await cryptoUtils.getSymmetricKey(
-                    publicKey,
-                    selfPrivateKey,
-                    commonSalt,
-                );
+                if (!reqPromisesHandler[username]) {
+                    reqPromisesHandler[username] = requests.getPublicKey(username);
+                }
+                const response = await reqPromisesHandler[username];
+                reqPromisesHandler[username] = null;
+                if (!cryptoPromisesHandler[username]) {
+                    cryptoPromisesHandler[username] = getSharedKey(
+                        response.publicKey,
+                        selfPrivateKey,
+                        userVars.current.salt,
+                        response.salt,
+                    );
+                }
+                sharedKey = await cryptoPromisesHandler[username];
+                cryptoPromisesHandler[username] = null;
+                if (!contactList.current[username]) {
+                    addToContactList(contactList, sharedKey, username, response.publicUsername);
+                }
+                const usernameOC = contactList.current[username].username;
                 if (codeMessage === 1) {
                     contactList.current = {
                         [username]: { key: sharedKey, username: usernameOC, type: "user" },
@@ -101,10 +107,10 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
                     data.slice(128),
                 );
-                const message = messageDecrypted;
                 // we need to make sure that the current sender is in our contactlist
-                if (contactList.current[sender] === undefined) {
-                    const response = await requests.getPublicKey(sender);
+                // ahh, this happens in the case of the group, got it
+                if (contactList.current[username] === undefined) {
+                    const response = await requests.getPublicKey(username);
                     const commonSalt = dataManipulation.xorArray(
                         userVars.current.salt,
                         response.salt,
@@ -124,7 +130,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                         selfPrivateKey,
                         commonSalt,
                     );
-                    contactList.current[sender] = {
+                    contactList.current[username] = {
                         type: "user",
                         key: key,
                         username: usernameOC,
@@ -133,10 +139,10 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     newChatMessages[username].messages[messageId] = {
-                        author: contactList.current[sender].username,
-                        content: message,
+                        author: sender,
+                        content: messageDecrypted,
                         createdAt: messageDate,
-                        // receiving a message does not mean the message has been read
+                        // when first receiving a message it is always unread
                         read: false,
                     };
                     return newChatMessages;
@@ -232,6 +238,27 @@ function getSocket() {
 function closeSocket() {
     console.log("Closing the websocket connection.");
     socket.close();
+}
+
+async function getSharedKey(bobPublicKeyObj, alicePrivateKey, aliceSalt, bobSalt) {
+    //response.publicKey
+    const commonSalt = dataManipulation.xorArray(aliceSalt, bobSalt);
+    const bobPublicKeyJWKArr = dataManipulation.objArrToUint8Arr(bobPublicKeyObj);
+    const bobPublicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(bobPublicKeyJWKArr));
+    const bobPublicKey = await cryptoUtils.importKey(
+        bobPublicKeyJWK,
+        { name: "ECDH", namedCurve: "P-256" },
+        [],
+    );
+    return await cryptoUtils.getSymmetricKey(bobPublicKey, alicePrivateKey, commonSalt);
+}
+
+function addToContactList(contactList, sharedKey, bobUsername, bobUsernameOC) {
+    contactList.current[bobUsername] = {
+        type: "user",
+        key: sharedKey,
+        username: bobUsernameOC,
+    };
 }
 
 export default { start, getSocket, sendMessage, closeSocket };

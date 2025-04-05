@@ -45,7 +45,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         // codeMessage: 1 for direct message; 2 acknowledge for reading the message
         const data = event.data.slice(1);
         // the first 48 bytes from data are for the context of the message
-        if (codeMessage < 3) {
+        if (codeMessage < 4) {
             const username = dataManipulation.arrBufferToString(data.slice(0, 48));
             let sharedKey;
             if (contactList.current[username]) {
@@ -99,13 +99,14 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             // we need to decrypt now!
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
             const messageId = dataManipulation.arrBufferToString(data.slice(64, 100));
-            if (codeMessage === 1) {
-                const messageDate = dataManipulation.getDateFromBuffer(data.slice(100, 116));
-                const ivBuffer = data.slice(116, 128);
+            if (codeMessage === 1 || codeMessage === 3) {
+                const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
+                const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
+                const ivBuffer = data.slice(117, 129);
                 const messageDecrypted = await cryptoUtils.getDecryptedMessage(
                     sharedKey,
                     { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
-                    data.slice(128),
+                    data.slice(129),
                 );
                 // we need to make sure that the current sender is in our contactlist
                 // ahh, this happens in the case of the group, got it
@@ -143,7 +144,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                         content: messageDecrypted,
                         createdAt: messageDate,
                         // when first receiving a message it is always unread
-                        read: false,
+                        read: codeMessage === 3 ? readStatus : false,
                     };
                     return newChatMessages;
                 });

@@ -241,11 +241,13 @@ export default function Homepage() {
             [currentTarget]: contactList.current[currentTarget],
             ...contactList.current,
         };
-        const usernameBuff = dataManipulation.stringToUint8Array(publicUsername.toLowerCase(), 16);
+        const usernameBuff = dataManipulation.stringToUint8Array(publicUsername, 16);
         const idBuff = dataManipulation.stringToUint8Array(id);
+        const padding = [0]; // used for the bit that will eventually used for the read status when retrieving data from the server
         const data = dataManipulation.groupBuffers([
             usernameBuff.buffer,
             idBuff.buffer,
+            padding,
             dateBuff.buffer,
             iv.buffer,
             messageEncrypted,
@@ -269,11 +271,9 @@ export default function Homepage() {
         // messages is an obj
         // we are reading the messages of the currentTarget
         for (let messageId in messages) {
-            if (
-                messages[messageId].read === false &&
-                messages[messageId].author === chatMessages[currentTarget].name
-            ) {
-                messages[messageId].read = true;
+            const message = messages[messageId];
+            if (message.read === false && message.author === chatMessages[currentTarget].name) {
+                message.read = true;
                 const usernameBuff = dataManipulation.stringToUint8Array(
                     publicUsername.toLowerCase(),
                     16,

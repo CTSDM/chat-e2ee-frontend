@@ -47,6 +47,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
         // the first 48 bytes from data are for the context of the message
         if (codeMessage < 4) {
             const username = dataManipulation.arrBufferToString(data.slice(0, 48));
+            const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
             let sharedKey;
             if (contactList.current[username]) {
                 sharedKey = contactList.current[username].key;
@@ -57,25 +58,14 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     };
                 }
             } else {
-                // we request the contactList through the API
-                if (!reqPromisesHandler[username]) {
-                    reqPromisesHandler[username] = requests.getPublicKey(username);
-                }
-                const response = await reqPromisesHandler[username];
-                reqPromisesHandler[username] = null;
-                if (!cryptoPromisesHandler[username]) {
-                    cryptoPromisesHandler[username] = getSharedKey(
-                        response.publicKey,
-                        selfPrivateKey,
-                        userVars.current.salt,
-                        response.salt,
-                    );
-                }
-                sharedKey = await cryptoPromisesHandler[username];
-                cryptoPromisesHandler[username] = null;
-                if (!contactList.current[username]) {
-                    addToContactList(contactList, sharedKey, username, response.publicUsername);
-                }
+                sharedKey = await prueba(
+                    [reqPromisesHandler[username], cryptoPromisesHandler[username]],
+                    username,
+                    selfPrivateKey,
+                    userVars.current.salt,
+                    contactList,
+                    setChatMessages,
+                );
                 const usernameOC = contactList.current[username].username;
                 if (codeMessage === 1) {
                     contactList.current = {
@@ -89,15 +79,8 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                         type: "user",
                     };
                 }
-                // since this would be the first message, we prepare the object
-                setChatMessages((previousChatMessages) => {
-                    const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username] = { name: usernameOC, messages: {} };
-                    return newChatMessages;
-                });
             }
             // we need to decrypt now!
-            const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
             const messageId = dataManipulation.arrBufferToString(data.slice(64, 100));
             if (codeMessage === 1 || codeMessage === 3) {
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
@@ -260,6 +243,32 @@ function addToContactList(contactList, sharedKey, bobUsername, bobUsernameOC) {
         key: sharedKey,
         username: bobUsernameOC,
     };
+}
+
+async function prueba(promisesHandler, context, privateKey, salt, contactList, setMessages) {
+    if (!promisesHandler[0]) {
+        promisesHandler[0] = requests.getPublicKey(context);
+    }
+    const response = await promisesHandler[0];
+    promisesHandler[0] = null;
+    if (!promisesHandler[1]) {
+        promisesHandler[1] = getSharedKey(response.publicKey, privateKey, salt, response.salt);
+    }
+    const sharedKey = await promisesHandler[1];
+    promisesHandler[1] = null;
+    if (!contactList.current[context]) {
+        addToContactList(contactList, sharedKey, context, response.publicUsername);
+        createChatEntry(context, response.publicUsername, setMessages);
+    }
+    return sharedKey;
+}
+
+function createChatEntry(context, username, setMessages) {
+    setMessages((previousChatMessages) => {
+        const newChatMessages = structuredClone(previousChatMessages);
+        newChatMessages[context] = { name: username, messages: {} };
+        return newChatMessages;
+    });
 }
 
 export default { start, getSocket, sendMessage, closeSocket };

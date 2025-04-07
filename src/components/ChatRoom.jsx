@@ -12,7 +12,7 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
 
     useEffect(() => {
         if (messages) {
-            const len = Object.keys(messages).length;
+            const len = messages.length;
             if (messagesLength.current !== len) {
                 messagesLength.current = len;
                 handleOnRender(messages);
@@ -39,19 +39,14 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         }
     }
 
-    // we need to convert an object into an array
-    // we only need the values
-    const messagesArr = Object.values(messages);
-    const messagesId = Object.keys(messages);
-
     return (
         <div className={styles.container}>
             <div className={styles.contact}>{target}</div>
             <div className={styles.messagesContainer}>
-                {messagesArr.map((message, index) => (
+                {messages.map((message) => (
                     <MessageBubble
-                        key={messagesId[index]}
-                        id={messagesId[index]}
+                        key={message.id}
+                        id={message.id}
                         message={message.content}
                         author={message.author}
                         date={message.createdAt}

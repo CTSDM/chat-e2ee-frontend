@@ -61,15 +61,7 @@ export default function Homepage() {
     }, [setErrMessages]);
 
     useEffect(() => {
-        startWebSocket(
-            publicUsername,
-            privateKey,
-            contactList,
-            setChatMessages,
-            userVars,
-            ws,
-            isLogged,
-        );
+        startWebSocket();
         // for now we empty the message array when a new connection is established
     }, [publicUsername, privateKey, contactList, setChatMessages, userVars, isLogged]);
 
@@ -89,6 +81,7 @@ export default function Homepage() {
                 publicUsername,
                 privateKey,
                 // we want to return the latest value of contact list
+                symmetricKey,
                 contactList,
                 setChatMessages,
                 userVars,
@@ -98,7 +91,7 @@ export default function Homepage() {
 
     async function handleNewConnection(typedPublicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
-        const response = await requests.getPublicKey(typedPublicUsername.toLowerCase());
+        const response = await requests.getPublicKey("users", typedPublicUsername.toLowerCase());
         if (response.status === 200) {
             const salt = dataManipulation.xorArray(
                 userVars.current.salt,
@@ -146,56 +139,23 @@ export default function Homepage() {
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
-        //we add the group to the contact list, we use a uuid as the id
-        //at the end we update the target
-        const groupId = uuidv4();
         // the current user will register itself to the group
         // and then it will send a new symmetric key encrypted to the server for storage
         // flagbyte 3 register, flagbyte 4 send encrypted key with DH to the database
         // flagbyte 5 save encrypted key to the database. Each user will do this step from their front end
-        const userMaxLength = env.validation.users.username.maxLength;
-        const groupMaxLength = env.validation.group.maxLength;
-        const groupNameArr = dataManipulation.stringToUint8Array(groupName, groupMaxLength);
-        const dateArr = dataManipulation.stringToUint8Array(new Date().getTime().toString(), 16);
-        let data = dataManipulation.groupBuffers([groupNameArr, dateArr]);
-        ws.sendMessage(4, groupId, data);
-        // create new symmetric key
-        const keySymmetricGroup = await cryptoUtils.getAESGCMkey();
+        const [groupId, key, keyRaw] = await createGroup(ws.sendMessage, groupName);
+        // add the new group to the contactList
         contactList.current[groupId] = {
             // username will be the group name
             username: groupName,
             members: [publicUsername, ...usernamesArr],
             type: "group",
-            key: keySymmetricGroup,
+            key: key,
         };
-        const keyRAW = await cryptoUtils.getExportedKeyRaw(keySymmetricGroup);
         usernamesArr.splice(0, 0, publicUsername.toLowerCase());
-        usernamesArr.forEach(async (username) => {
-            // the current user will encrypt this keyRAW with his own symmetric key (the same that uses to encrypt their key pair)
-            // encrypt the key with the current symmetric key --> send to the server
-            // for other users we first derive the shared key and then encrypt the new raw key with that
-            const iv = cryptoUtils.getRandomValues(12);
-            let rawKeyEnc;
-            const keyType = [0];
-            if (username === publicUsername.toLowerCase()) {
-                rawKeyEnc = await cryptoUtils.getEncryptedMessage(
-                    symmetricKey,
-                    { name: "AES-GCM", iv: iv },
-                    keyRAW,
-                );
-                keyType[0] = 1;
-            } else {
-                rawKeyEnc = await cryptoUtils.getEncryptedMessage(
-                    contactList.current[username].key,
-                    { name: "AES-GCM", iv: iv },
-                    keyRAW,
-                );
-            }
-            const keyUserData = dataManipulation.groupBuffers([iv, rawKeyEnc, keyType]);
-            const usernameArr = dataManipulation.stringToUint8Array(username, 16);
-            const data = dataManipulation.groupBuffers([usernameArr, keyUserData]);
-            ws.sendMessage(5, groupId, data);
-        });
+        // send encrypted keys to users and database
+        await addMemberToGroup(usernamesArr, groupId, keyRaw, symmetricKey, contactList);
+        // we update the states at the end after the async operations
         setCurrentTarget(groupId);
         setChatMessages((previousChatMessages) => {
             const newChatMessages = structuredClone(previousChatMessages);
@@ -276,7 +236,6 @@ export default function Homepage() {
 
     const contactNames = getContacts(contactList.current);
     const chatRoomMessages = getCurrentMessages(currentTarget, chatMessages);
-    orderChatRoom(chatRoomMessages);
 
     return (
         <div className={styles.container}>
@@ -354,17 +313,7 @@ function getCurrentMessages(target, messagesObj) {
             // we return an array ordered by date
             // we are comparing dates, should be done with quicksort
             const messages = messagesObj[target].messages;
-            const messagesArr = [];
-            for (let key in messages) {
-                const message = messages[key];
-                message.id = key;
-                messagesArr.push(message);
-            }
-            messagesArr.sort((a, b) => {
-                if (a.createdAt > b.createdAt) return 1;
-                else if (a.createdAt < b.createdAt) return -1;
-                return 0;
-            });
+            const messagesArr = orderChatRoom(messages);
             return messagesArr;
         }
     } else return undefined;
@@ -380,6 +329,61 @@ function getContacts(obj) {
     return arr;
 }
 
-function orderChatRoom() {
+function orderChatRoom(messages) {
     // the chatrooms will be ordered by date
+    const messagesArr = [];
+    for (let key in messages) {
+        const message = messages[key];
+        message.id = key;
+        messagesArr.push(message);
+    }
+    messagesArr.sort((a, b) => {
+        if (a.createdAt > b.createdAt) return 1;
+        else if (a.createdAt < b.createdAt) return -1;
+        return 0;
+    });
+    return messagesArr;
+}
+
+async function createGroup(send, groupName) {
+    const groupId = uuidv4();
+    const groupMaxLength = env.validation.group.maxLength;
+    const groupNameArr = dataManipulation.stringToUint8Array(groupName, groupMaxLength);
+    const dateArr = dataManipulation.stringToUint8Array(new Date().getTime().toString(), 16);
+    const data = dataManipulation.groupBuffers([groupNameArr, dateArr]);
+    const key = await cryptoUtils.getAESGCMkey();
+    const keyRaw = await cryptoUtils.getExportedKeyRaw(key);
+    send(4, groupId, data);
+    return [groupId, key, keyRaw];
+}
+
+async function addMemberToGroup(usersArr, groupId, keyRaw, symmetricKey, contactList) {
+    for (let i = 0; i < usersArr.length; ++i) {
+        const username = usersArr[i];
+        // the current user will encrypt this keyRAW with his own symmetric key (the same that uses to encrypt their key pair)
+        // encrypt the key with the current symmetric key --> send to the server
+        // for other users we first derive the shared key and then encrypt the new raw key with that
+        const iv = cryptoUtils.getRandomValues(12);
+        let rawKeyEnc;
+        const keyType = [0];
+        if (i == 0) {
+            // the first index corresponds to the current user
+            rawKeyEnc = await cryptoUtils.getEncryptedMessage(
+                symmetricKey,
+                { name: "AES-GCM", iv: iv },
+                keyRaw,
+            );
+            keyType[0] = 1;
+        } else {
+            rawKeyEnc = await cryptoUtils.getEncryptedMessage(
+                contactList.current[username].key,
+                { name: "AES-GCM", iv: iv },
+                keyRaw,
+            );
+        }
+        const keyUserData = dataManipulation.groupBuffers([iv, rawKeyEnc, keyType]);
+        const usernameArr = dataManipulation.stringToUint8Array(username, 16);
+        const data = dataManipulation.groupBuffers([usernameArr, keyUserData]);
+        ws.sendMessage(5, groupId, data);
+    }
 }

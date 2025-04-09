@@ -5,7 +5,7 @@ import { cryptoUtils } from "../utils/utils.js";
 
 let socket = null;
 
-function start(publicUsername, selfPrivateKey, contactList, setChatMessages, userVars) {
+function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessages, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
@@ -58,7 +58,7 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     };
                 }
             } else {
-                sharedKey = await prueba(
+                sharedKey = await createNewContact(
                     [reqPromisesHandler[username], cryptoPromisesHandler[username]],
                     username,
                     selfPrivateKey,
@@ -91,10 +91,9 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
                     { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
                     data.slice(129),
                 );
-                // we need to make sure that the current sender is in our contactlist
-                // ahh, this happens in the case of the group, got it
+                // we need to make sure that the current context is in our contactlist
                 if (contactList.current[username] === undefined) {
-                    const response = await requests.getPublicKey(username);
+                    const response = await requests.getPublicKey("users", username);
                     const commonSalt = dataManipulation.xorArray(
                         userVars.current.salt,
                         response.salt,
@@ -142,67 +141,45 @@ function start(publicUsername, selfPrivateKey, contactList, setChatMessages, use
             }
             return;
         }
-        if (codeMessage === 4) {
+        if (codeMessage === 6) {
             // this message is that the current user was added to a group chat
-            // first we retrieve the key
-            const [name, sender, iv, keyEncrypted] = getInfoSetupGroup(data.slice(48));
-            if (contactList.current[sender] === undefined) {
-                const response = await requests.getPublicKey(sender);
-                const commonSalt = dataManipulation.xorArray(userVars.current.salt, response.salt);
-                const usernameOC = response.publicUsername;
-                const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
-                const publicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(publicKeyJWKArr));
-                const publicKey = await cryptoUtils.importKey(
-                    publicKeyJWK,
-                    { name: "ECDH", namedCurve: "P-256" },
-                    [],
-                );
-                sharedKey = await cryptoUtils.getSymmetricKey(
-                    publicKey,
-                    selfPrivateKey,
-                    commonSalt,
-                );
-                contactList.current = {
-                    [sender]: { key: sharedKey, username: usernameOC, type: "user" },
-                    ...contactList.current,
-                };
-            }
-            const keyRaw = await window.crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: new Uint8Array(iv) },
-                contactList.current[sender].key,
-                keyEncrypted,
-            );
-            const key = await cryptoUtils.importKeyAESGCM(new Uint8Array(keyRaw));
-            contactList.current[username] = {
-                members: [],
-                type: "group",
-                username: name,
-                key: key,
+            // we check the key status to know whether or not the key is encrypted with our symmetric key
+            // if key status is 0 we check if the creator of the group is in our contact list
+            // if not then we request their public key
+            const groupInfo = { id: dataManipulation.arrBufferToString(data.slice(0, 48)) };
+            const promisesObj = {
+                req: reqPromisesHandler[groupInfo.id],
+                crypto: cryptoPromisesHandler[groupInfo.id],
             };
-            setChatMessages((previousChatMessages) => {
-                const newChatMessages = structuredClone(previousChatMessages);
-                newChatMessages[username] = { messages: {}, name: name };
-                newChatMessages[sender] = {
-                    messages: {},
-                    name: contactList.current[sender].username,
-                };
-                return newChatMessages;
-            });
+            // we add the group to the list
+            const groupAdditionalInfo = await getGroupInfo(
+                groupInfo.id,
+                reqPromisesHandler[groupInfo.id],
+            );
+            Object.assign(groupInfo, groupAdditionalInfo);
+            if (groupInfo.finalKey) {
+                groupInfo.key = await getGroupKey(promisesObj.crypto, groupInfo, symKey);
+            } else {
+                const sharedKey = await createNewContact(
+                    [
+                        reqPromisesHandler[groupInfo.creator],
+                        cryptoPromisesHandler[groupInfo.creator],
+                    ],
+                    groupInfo.creator,
+                    selfPrivateKey,
+                    userVars.current.salt,
+                    contactList,
+                    setChatMessages,
+                );
+                groupInfo.key = await getGroupKey(promisesObj.crypto, groupInfo, sharedKey);
+                if (!contactList.current[groupInfo.id]) {
+                    addToContactList(contactList, groupInfo.key, groupInfo.id, groupInfo.name);
+                    createChatEntry(groupInfo.id, groupInfo.name, setChatMessages);
+                }
+                console.log(contactList.current);
+            }
         }
     }
-}
-
-function getInfoSetupGroup(data) {
-    const groupNameBuffer = data.slice(0, 50);
-    let cumSumLength = groupNameBuffer.byteLength;
-    const senderBuffer = data.slice(cumSumLength, cumSumLength + 16);
-    cumSumLength += senderBuffer.byteLength;
-    const ivBuffer = data.slice(cumSumLength, cumSumLength + 12);
-    cumSumLength += ivBuffer.byteLength;
-    const keyEncryptedBuffer = data.slice(cumSumLength);
-    const groupName = dataManipulation.arrBufferToString(groupNameBuffer);
-    const sender = dataManipulation.arrBufferToString(senderBuffer);
-    return [groupName, sender, ivBuffer, keyEncryptedBuffer];
 }
 
 // this function expects ArrBuffer
@@ -224,6 +201,70 @@ function closeSocket() {
     socket.close();
 }
 
+function addToContactList(contactList, sharedKey, context, name) {
+    const type = context.length === 36 ? "group" : "user";
+    contactList.current[context] = {
+        type: type,
+        key: sharedKey,
+        username: name,
+    };
+}
+
+async function getGroupInfo(groupId, reqPromiseHandler) {
+    // this function will retrieve the key through the API
+    if (!reqPromiseHandler) {
+        reqPromiseHandler = requests.getPublicKey("groups", groupId);
+    }
+    const response = await reqPromiseHandler;
+    reqPromiseHandler = null;
+    return {
+        name: response.name,
+        creator: response.creator,
+        keyEncrypted: dataManipulation.objArrToUint8Arr(response.key),
+        iv: dataManipulation.objArrToUint8Arr(response.iv),
+        finalKey: response.finalKey,
+    };
+}
+
+async function getGroupKey(cryptoPromiseHandler, groupInfo, keyToUse) {
+    if (!cryptoPromiseHandler) {
+        cryptoPromiseHandler = cryptoUtils.getDecryptedKey(
+            keyToUse,
+            groupInfo.iv,
+            groupInfo.keyEncrypted,
+        );
+    }
+    const key = await cryptoUtils.importKeyAESGCM(await cryptoPromiseHandler);
+    cryptoPromiseHandler = null;
+    return key;
+}
+
+async function createNewContact(
+    promisesHandler,
+    context,
+    privateKey,
+    salt,
+    contactList,
+    setMessages,
+) {
+    if (!promisesHandler[0]) {
+        promisesHandler[0] = requests.getPublicKey("users", context);
+    }
+    const response = await promisesHandler[0];
+    promisesHandler[0] = null;
+    if (!promisesHandler[1]) {
+        const bobSalt = dataManipulation.objArrToUint8Arr(response.salt);
+        promisesHandler[1] = getSharedKey(response.publicKey, privateKey, salt, bobSalt);
+    }
+    const sharedKey = await promisesHandler[1];
+    promisesHandler[1] = null;
+    if (!contactList.current[context]) {
+        addToContactList(contactList, sharedKey, context, response.publicUsername);
+        createChatEntry(context, response.publicUsername, setMessages);
+    }
+    return sharedKey;
+}
+
 async function getSharedKey(bobPublicKeyObj, alicePrivateKey, aliceSalt, bobSalt) {
     //response.publicKey
     const commonSalt = dataManipulation.xorArray(aliceSalt, bobSalt);
@@ -235,32 +276,6 @@ async function getSharedKey(bobPublicKeyObj, alicePrivateKey, aliceSalt, bobSalt
         [],
     );
     return await cryptoUtils.getSymmetricKey(bobPublicKey, alicePrivateKey, commonSalt);
-}
-
-function addToContactList(contactList, sharedKey, bobUsername, bobUsernameOC) {
-    contactList.current[bobUsername] = {
-        type: "user",
-        key: sharedKey,
-        username: bobUsernameOC,
-    };
-}
-
-async function prueba(promisesHandler, context, privateKey, salt, contactList, setMessages) {
-    if (!promisesHandler[0]) {
-        promisesHandler[0] = requests.getPublicKey(context);
-    }
-    const response = await promisesHandler[0];
-    promisesHandler[0] = null;
-    if (!promisesHandler[1]) {
-        promisesHandler[1] = getSharedKey(response.publicKey, privateKey, salt, response.salt);
-    }
-    const sharedKey = await promisesHandler[1];
-    promisesHandler[1] = null;
-    if (!contactList.current[context]) {
-        addToContactList(contactList, sharedKey, context, response.publicUsername);
-        createChatEntry(context, response.publicUsername, setMessages);
-    }
-    return sharedKey;
 }
 
 function createChatEntry(context, username, setMessages) {

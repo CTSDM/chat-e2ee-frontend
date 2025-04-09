@@ -77,6 +77,10 @@ async function getDecryptedMessage(key, algorithmObj, data) {
     return dec.decode(decrypted);
 }
 
+async function getDecryptedKey(key, iv, keyEncrypted) {
+    return await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, keyEncrypted);
+}
+
 async function getExportedKeyString(key) {
     const keyExported = await window.crypto.subtle.exportKey("jwk", key);
     return JSON.stringify(keyExported);
@@ -177,4 +181,5 @@ export default {
     getSymmetricKey,
     getExportedKeyRaw,
     importKeyAESGCM,
+    getDecryptedKey,
 };

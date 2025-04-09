@@ -4,13 +4,22 @@ import requests from "../utils/requests.js";
 import ws from "../websocket/ws.js";
 
 function Logout() {
-    const { setIsLogged, setPublicUsername, setPrivateUsername, setPrivateKey, isError } =
-        useContext(Context);
+    const {
+        setIsLogged,
+        setPublicUsername,
+        setPrivateUsername,
+        setPrivateKey,
+        isError,
+        contactList,
+        userVars,
+    } = useContext(Context);
     const [errorMessage, setErrorMessage] = useState(null);
     useEffect(() => {
         const controller = new AbortController();
         (async () => {
             const response = await requests.submitLogout(controller);
+            contactList.current = {};
+            userVars.current = {};
             setIsLogged(false);
             if (ws.getSocket()) {
                 ws.closeSocket();

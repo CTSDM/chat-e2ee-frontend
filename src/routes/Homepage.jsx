@@ -139,11 +139,13 @@ export default function Homepage() {
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
+        console.log("hi");
         // the current user will register itself to the group
         // and then it will send a new symmetric key encrypted to the server for storage
-        // flagbyte 3 register, flagbyte 4 send encrypted key with DH to the database
-        // flagbyte 5 save encrypted key to the database. Each user will do this step from their front end
-        const [groupId, key, keyRaw] = await createGroup(ws.sendMessage, groupName);
+        // flagByte 3 send a message to the server to create the group
+        // flagByte 4 send encrypted key with DH to the database
+        // flagByte 5 signals the end of the group creation
+        const [groupId, key, keyRaw] = await createGroup(groupName);
         // add the new group to the contactList
         contactList.current[groupId] = {
             // username will be the group name
@@ -155,6 +157,7 @@ export default function Homepage() {
         usernamesArr.splice(0, 0, publicUsername.toLowerCase());
         // send encrypted keys to users and database
         await addMemberToGroup(usernamesArr, groupId, keyRaw, symmetricKey, contactList);
+        ws.sendMessage(5, groupId, cryptoUtils.getRandomValues(12));
         // we update the states at the end after the async operations
         setCurrentTarget(groupId);
         setChatMessages((previousChatMessages) => {
@@ -345,7 +348,7 @@ function orderChatRoom(messages) {
     return messagesArr;
 }
 
-async function createGroup(send, groupName) {
+async function createGroup(groupName) {
     const groupId = uuidv4();
     const groupMaxLength = env.validation.group.maxLength;
     const groupNameArr = dataManipulation.stringToUint8Array(groupName, groupMaxLength);
@@ -353,7 +356,7 @@ async function createGroup(send, groupName) {
     const data = dataManipulation.groupBuffers([groupNameArr, dateArr]);
     const key = await cryptoUtils.getAESGCMkey();
     const keyRaw = await cryptoUtils.getExportedKeyRaw(key);
-    send(4, groupId, data);
+    ws.sendMessage(3, groupId, data);
     return [groupId, key, keyRaw];
 }
 
@@ -384,6 +387,6 @@ async function addMemberToGroup(usersArr, groupId, keyRaw, symmetricKey, contact
         const keyUserData = dataManipulation.groupBuffers([iv, rawKeyEnc, keyType]);
         const usernameArr = dataManipulation.stringToUint8Array(username, 16);
         const data = dataManipulation.groupBuffers([usernameArr, keyUserData]);
-        ws.sendMessage(5, groupId, data);
+        ws.sendMessage(4, groupId, data);
     }
 }

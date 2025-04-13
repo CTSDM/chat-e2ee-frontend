@@ -172,11 +172,16 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                     setChatMessages,
                 );
                 groupInfo.key = await getGroupKey(promisesObj.crypto, groupInfo, sharedKey);
-                if (!contactList.current[groupInfo.id]) {
-                    addToContactList(contactList, groupInfo.key, groupInfo.id, groupInfo.name);
-                    createChatEntry(groupInfo.id, groupInfo.name, setChatMessages);
-                }
-                console.log(contactList.current);
+            }
+            if (!contactList.current[groupInfo.id]) {
+                addToContactList(
+                    contactList,
+                    groupInfo.key,
+                    groupInfo.id,
+                    groupInfo.name,
+                    groupInfo.members,
+                );
+                createChatEntry(groupInfo.id, groupInfo.name, setChatMessages);
             }
         }
     }
@@ -201,13 +206,13 @@ function closeSocket() {
     socket.close();
 }
 
-function addToContactList(contactList, sharedKey, context, name) {
+function addToContactList(contactList, sharedKey, context, name, members) {
     const type = context.length === 36 ? "group" : "user";
-    contactList.current[context] = {
-        type: type,
-        key: sharedKey,
-        username: name,
-    };
+    const contact = { type: type, key: sharedKey, username: name };
+    if (type === "group") {
+        contact.members = members;
+    }
+    contactList.current[context] = contact;
 }
 
 async function getGroupInfo(groupId, reqPromiseHandler) {
@@ -223,6 +228,7 @@ async function getGroupInfo(groupId, reqPromiseHandler) {
         keyEncrypted: dataManipulation.objArrToUint8Arr(response.key),
         iv: dataManipulation.objArrToUint8Arr(response.iv),
         finalKey: response.finalKey,
+        members: response.members,
     };
 }
 

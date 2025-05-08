@@ -62,8 +62,8 @@ async function submitSignup(data) {
     }
 }
 
-async function getPublicKey(endPoint, user) {
-    const url = `${env.serverUrl}/${endPoint}/${user}/keys`;
+async function getPublicKey(endPoint, context) {
+    const url = `${env.serverUrl}/${endPoint}/${context}/keys`;
     try {
         const response = await fetch(url, {
             mode: "cors",

@@ -5,15 +5,9 @@ import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 import styles from "./MessageBubble.module.css";
 
-export default function MessageBubble({ id, message, author, username, date, isRead, showAuthor }) {
+export default function MessageBubble({ id, content, author, username, date, isRead, showAuthor }) {
     const messageRef = useRef(null);
     const dateFormatted = dataManipulation.getDateFormatted(date);
-    let content;
-    if (typeof message === "object") {
-        content = message.content;
-    } else {
-        content = message;
-    }
 
     const isAuthSender = username === author;
 
@@ -63,7 +57,6 @@ MessageBubble.propTypes = {
     username: PropTypes.string.isRequired,
     author: PropTypes.string.isRequired,
     isRead: PropTypes.bool.isRequired,
-    // In case the message is an image we check if the message is an object.
-    message: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
+    content: PropTypes.string.isRequired,
     showAuthor: PropTypes.bool.isRequired,
 };

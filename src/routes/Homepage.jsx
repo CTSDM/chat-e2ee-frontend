@@ -91,7 +91,7 @@ export default function Homepage() {
 
     async function handleNewConnection(typedPublicUsername) {
         // here we have to make sure that the response handles beautifully all the different options
-        const response = await requests.getPublicKey("users", typedPublicUsername.toLowerCase());
+        const response = await requests.getPublicKey("user", typedPublicUsername.toLowerCase());
         if (response.status === 200) {
             const salt = dataManipulation.xorArray(
                 userVars.current.salt,
@@ -108,7 +108,7 @@ export default function Homepage() {
             );
             const sharedKey = await cryptoUtils.getSymmetricKey(otherPublicKey, privateKey, salt);
             contactList.current[targetPublicUsernameLC] = {
-                username: targetPublicUsername,
+                name: targetPublicUsername,
                 key: sharedKey,
                 type: "user",
             };
@@ -139,7 +139,6 @@ export default function Homepage() {
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
-        console.log("hi");
         // the current user will register itself to the group
         // and then it will send a new symmetric key encrypted to the server for storage
         // flagByte 3 send a message to the server to create the group
@@ -149,7 +148,7 @@ export default function Homepage() {
         // add the new group to the contactList
         contactList.current[groupId] = {
             // username will be the group name
-            username: groupName,
+            name: groupName,
             members: [publicUsername, ...usernamesArr],
             type: "group",
             key: key,
@@ -171,8 +170,9 @@ export default function Homepage() {
     }
 
     async function handleSubmitMessage(message) {
+        const flagByte = 1;
         const dateString = new Date().getTime().toString();
-        const dateBuff = dataManipulation.stringToUint8Array(dateString, 16);
+        const dateArr = dataManipulation.stringToUint8Array(dateString, 16);
         const iv = cryptoUtils.getRandomValues(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
@@ -195,50 +195,85 @@ export default function Homepage() {
             usernameBuff.buffer,
             idBuff.buffer,
             padding,
-            dateBuff.buffer,
+            dateArr.buffer,
             iv.buffer,
             messageEncrypted,
         ]);
-        let flagByte = contactList.current[currentTarget].type === "user" ? 1 : 6;
         ws.sendMessage(flagByte, currentTarget, data);
+        const isGroup = currentTarget.length === 36;
         setChatMessages((previousMessages) => {
             const newMessages = structuredClone(previousMessages);
-            newMessages[currentTarget].messages[id] = {
+            const newMessage = {
                 author: publicUsername,
                 content: message,
                 createdAt: new Date(),
                 // the message we sent is by default false
                 read: false,
             };
+            if (isGroup) {
+                newMessage.read = [];
+            } else {
+                newMessage.read = false;
+            }
+            newMessages[currentTarget].messages[id] = newMessage;
             return newMessages;
         });
     }
 
-    async function readMessages(messages) {
+    async function readGroupMessages(messages, groupId) {}
+
+    async function readMessages(messages, groupId) {
         // messages is an obj
         // we are reading the messages of the currentTarget
+        // the read status does not have a time stamp
         for (let i = 0; i < messages.length; ++i) {
             const message = messages[i];
-            if (message.read === false && message.author === chatMessages[currentTarget].name) {
-                message.read = true;
-                const usernameBuff = dataManipulation.stringToUint8Array(
-                    publicUsername.toLowerCase(),
-                    16,
-                );
-                const messageIdBuff = dataManipulation.stringToUint8Array(message.id);
-                const data = dataManipulation.groupBuffers([usernameBuff, messageIdBuff]);
-                ws.sendMessage(2, currentTarget, data);
-                setChatMessages((previousChatMessages) => {
-                    const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[currentTarget].messages = messages;
-                    return newChatMessages;
-                });
+            if (groupId) {
+                if (message.author !== publicUsername && !message.read.includes(publicUsername)) {
+                    message.read.push(publicUsername);
+                    const usernameBuff = dataManipulation.stringToUint8Array(
+                        publicUsername.toLowerCase(),
+                        16,
+                    );
+                    const messageIdBuff = dataManipulation.stringToUint8Array(message.id);
+                    const dateArr = dataManipulation.stringToUint8Array(
+                        new Date().getTime().toString(),
+                        16,
+                    );
+                    const data = dataManipulation.groupBuffers([
+                        usernameBuff,
+                        messageIdBuff,
+                        dateArr,
+                    ]);
+                    ws.sendMessage(2, currentTarget, data);
+                    setChatMessages((previousChatMessages) => {
+                        const newChatMessages = structuredClone(previousChatMessages);
+                        newChatMessages[currentTarget].messages[message.id] = message;
+                        return newChatMessages;
+                    });
+                }
+            } else {
+                if (message.author === chatMessages[currentTarget].name && message.read === false) {
+                    message.read = true;
+                    const usernameBuff = dataManipulation.stringToUint8Array(
+                        publicUsername.toLowerCase(),
+                        16,
+                    );
+                    const messageIdBuff = dataManipulation.stringToUint8Array(message.id);
+                    const data = dataManipulation.groupBuffers([usernameBuff, messageIdBuff]);
+                    ws.sendMessage(2, currentTarget, data);
+                    // we need to update the message.read so it persists
+                    setChatMessages((previousChatMessages) => {
+                        const newChatMessages = structuredClone(previousChatMessages);
+                        newChatMessages[currentTarget].messages[message.id] = message;
+                        return newChatMessages;
+                    });
+                }
             }
         }
     }
 
     const contactNames = getContacts(contactList.current);
-    const chatRoomMessages = getCurrentMessages(currentTarget, chatMessages);
 
     return (
         <div className={styles.container}>
@@ -269,7 +304,7 @@ export default function Homepage() {
                         <PreviewMessages
                             key={contact}
                             id={contact}
-                            contact={contactList.current[contact].username}
+                            contact={contactList.current[contact].name}
                             username={publicUsername}
                             message={message}
                             target={currentTarget}
@@ -286,17 +321,18 @@ export default function Homepage() {
                 {currentTarget ? (
                     contactList.current[currentTarget].type === "group" ? (
                         <GroupChatRoom
-                            groupName={currentTarget && contactList.current[currentTarget].username}
+                            id={currentTarget}
+                            name={currentTarget && contactList.current[currentTarget].name}
                             members={currentTarget && contactList.current[currentTarget].members}
-                            messages={chatRoomMessages}
+                            messages={chatMessages}
                             handleOnSubmit={handleSubmitMessage}
                             handleOnRender={readMessages}
                             username={publicUsername}
                         />
                     ) : (
                         <ChatRoom
-                            target={currentTarget && contactList.current[currentTarget].username}
-                            messages={chatRoomMessages}
+                            target={currentTarget && contactList.current[currentTarget].name}
+                            messages={chatMessages}
                             handleOnSubmit={handleSubmitMessage}
                             handleOnRender={readMessages}
                             username={publicUsername}
@@ -310,18 +346,6 @@ export default function Homepage() {
     );
 }
 
-function getCurrentMessages(target, messagesObj) {
-    if (messagesObj && target) {
-        if (messagesObj[target]) {
-            // we return an array ordered by date
-            // we are comparing dates, should be done with quicksort
-            const messages = messagesObj[target].messages;
-            const messagesArr = orderChatRoom(messages);
-            return messagesArr;
-        }
-    } else return undefined;
-}
-
 function getContacts(obj) {
     // the expected object should be as follows
     // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
@@ -330,22 +354,6 @@ function getContacts(obj) {
         arr.push(key);
     }
     return arr;
-}
-
-function orderChatRoom(messages) {
-    // the chatrooms will be ordered by date
-    const messagesArr = [];
-    for (let key in messages) {
-        const message = messages[key];
-        message.id = key;
-        messagesArr.push(message);
-    }
-    messagesArr.sort((a, b) => {
-        if (a.createdAt > b.createdAt) return 1;
-        else if (a.createdAt < b.createdAt) return -1;
-        return 0;
-    });
-    return messagesArr;
 }
 
 async function createGroup(groupName) {

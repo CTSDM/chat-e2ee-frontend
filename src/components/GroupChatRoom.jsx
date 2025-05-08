@@ -4,27 +4,29 @@ import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./GroupChatRoom.module.css";
 import { useEffect, useRef } from "react";
+import utils from "../utils/chatUtils.js";
 
-function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, groupName, members }) {
+function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, name, id, members }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
+    const messagesArr = utils.getCurrentMessages(messages, id);
 
     useEffect(() => {
-        if (messages) {
-            const len = Object.keys(messages).length;
+        if (messagesArr) {
+            const len = messagesArr.length;
             if (messagesLength.current !== len) {
                 messagesLength.current = len;
-                handleOnRender(messages);
+                handleOnRender(messagesArr, id);
             }
         }
         // we focus the input
         if (refForm.current) {
             refForm.current.focus();
         }
-    }, [handleOnRender, messages]);
+    }, [handleOnRender, messagesArr, id]);
 
-    if (!messages) {
+    if (!messagesArr) {
         return <div></div>;
     }
 
@@ -39,26 +41,19 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, gro
         }
     }
 
-    // we need to convert an object into an array
-    // we only need the values
-    const messagesArr = Object.values(messages);
-    const messagesId = Object.keys(messages);
-
     return (
         <div className={styles.container}>
             <div className={styles.contact}>
-                {groupName} / {`${members.length} members`}
+                {name} / {`${members.length} members`}
             </div>
             <div className={styles.messagesContainer}>
-                {messagesArr.map((message, index) => {
-                    const readBy = message.readBy;
-                    const isRead =
-                        typeof readBy === "object" && readBy.length === members.length - 1;
+                {messagesArr.map((message) => {
+                    const isRead = message.read.length === members.length - 1;
                     return (
                         <MessageBubble
-                            id={messagesId[index]}
-                            key={messagesId[index]}
-                            message={message.content}
+                            id={message.id}
+                            key={message.id}
+                            content={message.content}
                             author={message.author}
                             date={message.createdAt}
                             isRead={isRead}
@@ -82,16 +77,20 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, gro
 
 GroupChatRoom.propTypes = {
     members: PropTypes.array,
-    groupName: PropTypes.string.isRequired,
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
-    messages: PropTypes.objectOf(
-        PropTypes.shape({
-            author: PropTypes.string.isRequired,
-            content: PropTypes.string.isRequired,
-            createdAt: PropTypes.object.isRequired,
-            readBy: PropTypes.oneOfType([PropTypes.array, PropTypes.string]).isRequired,
-        }),
-    ).isRequired,
+    messages: PropTypes.oneOfType([
+        PropTypes.objectOf(
+            PropTypes.shape({
+                author: PropTypes.string.isRequired,
+                content: PropTypes.string.isRequired,
+                createdAt: PropTypes.object.isRequired,
+                read: PropTypes.array.isRequired,
+            }).isRequired,
+        ),
+        PropTypes.object.isRequired,
+    ]),
     handleOnSubmit: PropTypes.func.isRequired,
     handleOnRender: PropTypes.func.isRequired,
 };

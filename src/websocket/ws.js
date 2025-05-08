@@ -46,42 +46,52 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
         const data = event.data.slice(1);
         // the first 48 bytes from data are for the context of the message
         if (codeMessage < 4) {
-            const username = dataManipulation.arrBufferToString(data.slice(0, 48));
+            const context = dataManipulation.arrBufferToString(data.slice(0, 48));
+            const contextType = context.length === 36 ? "group" : "user";
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
-            let sharedKey;
-            if (contactList.current[username]) {
-                sharedKey = contactList.current[username].key;
+            if (contactList.current[context]) {
                 if (codeMessage === 1) {
                     contactList.current = {
-                        [username]: contactList.current[username],
+                        [context]: contactList.current[context],
                         ...contactList.current,
                     };
                 }
             } else {
-                sharedKey = await createNewContact(
-                    [reqPromisesHandler[username], cryptoPromisesHandler[username]],
-                    username,
-                    selfPrivateKey,
-                    userVars.current.salt,
-                    contactList,
-                    setChatMessages,
-                );
-                const usernameOC = contactList.current[username].username;
-                if (codeMessage === 1) {
-                    contactList.current = {
-                        [username]: { key: sharedKey, username: usernameOC, type: "user" },
-                        ...contactList.current,
-                    };
-                } else if (codeMessage === 2) {
-                    contactList.current[username] = {
-                        key: sharedKey,
-                        username: usernameOC,
-                        type: "user",
-                    };
+                // the current context is not in the contact list
+                // i need to improve this
+                if (contextType === "user") {
+                    await createNewContact(
+                        [reqPromisesHandler[context], cryptoPromisesHandler[context]],
+                        context,
+                        contextType,
+                        selfPrivateKey,
+                        userVars.current.salt,
+                        contactList,
+                        setChatMessages,
+                    );
+                } else {
+                    const groupInfo = { id: context };
+                    await setupNewGroup(
+                        groupInfo,
+                        reqPromisesHandler,
+                        cryptoPromisesHandler,
+                        contactList,
+                        selfPrivateKey,
+                        userVars,
+                        setChatMessages,
+                        symKey,
+                    );
                 }
+                // we move the current contact to the top
+                // for now this is how the preview messages are ordered
+                contactList.current = {
+                    [context]: contactList.current[context],
+                    ...contactList.current,
+                };
             }
             // we need to decrypt now!
             const messageId = dataManipulation.arrBufferToString(data.slice(64, 100));
+            const sharedKey = contactList.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
                 const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
@@ -91,43 +101,26 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                     { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
                     data.slice(129),
                 );
-                // we need to make sure that the current context is in our contactlist
-                if (contactList.current[username] === undefined) {
-                    const response = await requests.getPublicKey("users", username);
-                    const commonSalt = dataManipulation.xorArray(
-                        userVars.current.salt,
-                        response.salt,
-                    );
-                    const usernameOC = response.publicUsername;
-                    const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(response.publicKey);
-                    const publicKeyJWK = JSON.parse(
-                        dataManipulation.Uint8ArrayToStr(publicKeyJWKArr),
-                    );
-                    const publicKey = await cryptoUtils.importKey(
-                        publicKeyJWK,
-                        { name: "ECDH", namedCurve: "P-256" },
-                        [],
-                    );
-                    const key = await cryptoUtils.getSymmetricKey(
-                        publicKey,
-                        selfPrivateKey,
-                        commonSalt,
-                    );
-                    contactList.current[username] = {
-                        type: "user",
-                        key: key,
-                        username: usernameOC,
-                    };
-                }
                 setChatMessages((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[messageId] = {
+                    const newMessage = {
                         author: sender,
                         content: messageDecrypted,
                         createdAt: messageDate,
-                        // when first receiving a message it is always unread
-                        read: codeMessage === 3 ? readStatus : false,
                     };
+                    // a message just received from the other user through the server is always false
+                    // however, if the message comes from the database, we get its state
+                    // for now this only work for direct messages
+                    if (contextType === "group") {
+                        newMessage.read = [];
+                    } else {
+                        if (codeMessage === 3) {
+                            newMessage.read = readStatus;
+                        } else {
+                            newMessage.read = false;
+                        }
+                    }
+                    newChatMessages[context].messages[messageId] = newMessage;
                     return newChatMessages;
                 });
             } else if (codeMessage === 2) {
@@ -135,54 +128,35 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                 setChatMessages((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);
-                    newChatMessages[username].messages[messageId].read = true;
+                    if (contextType === "user") {
+                        newChatMessages[context].messages[messageId].read = true;
+                    } else {
+                        // we add the sender of the message to the read array
+                        newChatMessages[context].messages[messageId].read.push(sender);
+                    }
                     return newChatMessages;
                 });
             }
             return;
         }
         if (codeMessage === 6) {
+            // this code below is gold
             // this message is that the current user was added to a group chat
             // we check the key status to know whether or not the key is encrypted with our symmetric key
             // if key status is 0 we check if the creator of the group is in our contact list
             // if not then we request their public key
             const groupInfo = { id: dataManipulation.arrBufferToString(data.slice(0, 48)) };
-            const promisesObj = {
-                req: reqPromisesHandler[groupInfo.id],
-                crypto: cryptoPromisesHandler[groupInfo.id],
-            };
             // we add the group to the list
-            const groupAdditionalInfo = await getGroupInfo(
-                groupInfo.id,
-                reqPromisesHandler[groupInfo.id],
+            setupNewGroup(
+                groupInfo,
+                reqPromisesHandler,
+                cryptoPromisesHandler,
+                contactList,
+                selfPrivateKey,
+                userVars,
+                setChatMessages,
+                symKey,
             );
-            Object.assign(groupInfo, groupAdditionalInfo);
-            if (groupInfo.finalKey) {
-                groupInfo.key = await getGroupKey(promisesObj.crypto, groupInfo, symKey);
-            } else {
-                const sharedKey = await createNewContact(
-                    [
-                        reqPromisesHandler[groupInfo.creator],
-                        cryptoPromisesHandler[groupInfo.creator],
-                    ],
-                    groupInfo.creator,
-                    selfPrivateKey,
-                    userVars.current.salt,
-                    contactList,
-                    setChatMessages,
-                );
-                groupInfo.key = await getGroupKey(promisesObj.crypto, groupInfo, sharedKey);
-            }
-            if (!contactList.current[groupInfo.id]) {
-                addToContactList(
-                    contactList,
-                    groupInfo.key,
-                    groupInfo.id,
-                    groupInfo.name,
-                    groupInfo.members,
-                );
-                createChatEntry(groupInfo.id, groupInfo.name, setChatMessages);
-            }
         }
     }
 }
@@ -208,17 +182,56 @@ function closeSocket() {
 
 function addToContactList(contactList, sharedKey, context, name, members) {
     const type = context.length === 36 ? "group" : "user";
-    const contact = { type: type, key: sharedKey, username: name };
+    const contact = { type: type, key: sharedKey, name: name };
     if (type === "group") {
         contact.members = members;
     }
     contactList.current[context] = contact;
 }
 
+async function setupNewGroup(
+    groupInfo,
+    reqPromisesHandler,
+    cryptoPromisesHandler,
+    contacts,
+    privateKey,
+    userVars,
+    setChat,
+    symKey,
+) {
+    const groupAdditionalInfo = await getGroupInfo(groupInfo.id, reqPromisesHandler[groupInfo.id]);
+    Object.assign(groupInfo, groupAdditionalInfo);
+    const reqHandlerCreator = reqPromisesHandler[groupInfo.creator];
+    const cryptoHandlerCreator = cryptoPromisesHandler[groupInfo.creator];
+    const cryptoHandlerGroup = cryptoPromisesHandler[groupInfo.id];
+    // if there is a final key it means that we can decrypt the key using the symmetric key
+    // otherwise the key can de decrypted using the key from the DH exchange with the creator of the group
+    // thus, we only fetch the info with the creator if they are not in the contact list.
+    if (groupInfo.finalKey) {
+        groupInfo.key = await getGroupKey(cryptoHandlerGroup, groupInfo, symKey);
+    } else {
+        await createNewContact(
+            [reqHandlerCreator, cryptoHandlerCreator],
+            groupInfo.creator,
+            "user",
+            privateKey,
+            userVars.current.salt,
+            contacts,
+            setChat,
+        );
+        const sharedKey = contacts.current[groupInfo.creator].key;
+        groupInfo.key = await getGroupKey(cryptoHandlerGroup, groupInfo, sharedKey);
+    }
+    if (!contacts.current[groupInfo.id]) {
+        addToContactList(contacts, groupInfo.key, groupInfo.id, groupInfo.name, groupInfo.members);
+        createChatEntry(groupInfo.id, groupInfo.name, setChat);
+    }
+}
+
 async function getGroupInfo(groupId, reqPromiseHandler) {
     // this function will retrieve the key through the API
     if (!reqPromiseHandler) {
-        reqPromiseHandler = requests.getPublicKey("groups", groupId);
+        reqPromiseHandler = requests.getPublicKey("group", groupId);
     }
     const response = await reqPromiseHandler;
     reqPromiseHandler = null;
@@ -248,13 +261,14 @@ async function getGroupKey(cryptoPromiseHandler, groupInfo, keyToUse) {
 async function createNewContact(
     promisesHandler,
     context,
+    contextType,
     privateKey,
     salt,
     contactList,
     setMessages,
 ) {
     if (!promisesHandler[0]) {
-        promisesHandler[0] = requests.getPublicKey("users", context);
+        promisesHandler[0] = requests.getPublicKey(contextType, context);
     }
     const response = await promisesHandler[0];
     promisesHandler[0] = null;
@@ -268,11 +282,9 @@ async function createNewContact(
         addToContactList(contactList, sharedKey, context, response.publicUsername);
         createChatEntry(context, response.publicUsername, setMessages);
     }
-    return sharedKey;
 }
 
 async function getSharedKey(bobPublicKeyObj, alicePrivateKey, aliceSalt, bobSalt) {
-    //response.publicKey
     const commonSalt = dataManipulation.xorArray(aliceSalt, bobSalt);
     const bobPublicKeyJWKArr = dataManipulation.objArrToUint8Arr(bobPublicKeyObj);
     const bobPublicKeyJWK = JSON.parse(dataManipulation.Uint8ArrayToStr(bobPublicKeyJWKArr));

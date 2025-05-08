@@ -44,7 +44,7 @@ function GlobalContextProvider() {
                     // i think so
                     setIsLogged(true);
                     setPrivateUsername(response.privateUsername);
-                    setPublicUsername(response.publicUsernameOriginalCase);
+                    setPublicUsername(response.publicUsername);
                     (async () => {
                         const publicKeyJWKArr = dataManipulation.objArrToUint8Arr(
                             response.publicKey,

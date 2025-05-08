@@ -12,7 +12,7 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
     for (let key in contactList) {
         if (contactList[key].type === "user") {
             usernameArr.push(key);
-            usernameOCArr.push(contactList[key].username);
+            usernameOCArr.push(contactList[key].name);
         }
     }
 

@@ -7,19 +7,21 @@ import userEvent from "@testing-library/user-event";
 
 const contacts = validEntries.contactList;
 const username = validEntries.user.publicUsername;
+const directMessages = validEntries.privateMessages.valid;
 
 // scrollIntoView is not defined in the jest module, so we define it here
 window.HTMLElement.prototype.scrollIntoView = vi.fn;
 
 describe("The component ", () => {
     it("should be rendered with an input text when the conversation starts.", () => {
+        const target = "empty";
         render(
             <ChatRoom
-                messages={{}}
+                messages={directMessages}
                 handleOnSubmit={() => {}}
                 handleOnRender={() => {}}
                 username={username}
-                target={contacts[0]}
+                target={target}
             />,
         );
         const form = screen.getByRole("form");
@@ -31,7 +33,7 @@ describe("The component ", () => {
         render(
             <ChatRoom
                 target={target}
-                messages={{}}
+                messages={directMessages}
                 handleOnSubmit={() => {}}
                 handleOnRender={() => {}}
                 username={username}
@@ -41,19 +43,19 @@ describe("The component ", () => {
     });
 
     it("should render the messages with a valid messages object.", () => {
-        contacts.forEach((contact) => {
-            const messages = validEntries.privateMessages.valid[contact];
-            if (messages) {
+        contacts.forEach((contactOriginalCase) => {
+            const contact = contactOriginalCase.toLowerCase();
+            if (directMessages[contact]) {
                 const { unmount } = render(
                     <ChatRoom
                         target={contact}
-                        messages={messages}
+                        messages={directMessages}
                         handleOnSubmit={() => {}}
                         handleOnRender={() => {}}
                         username={username}
                     />,
                 );
-                const messagesArr = Object.values(messages);
+                const messagesArr = Object.values(directMessages[contact].messages);
                 messagesArr.forEach((message) => {
                     expect(screen.getByText(message.content)).toBeInTheDocument();
                     const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
@@ -70,7 +72,7 @@ describe("The component ", () => {
         render(
             <ChatRoom
                 target={contacts[0]}
-                messages={{}}
+                messages={directMessages}
                 handleOnSubmit={handleOnSubmit}
                 handleOnRender={() => {}}
                 username={username}
@@ -88,7 +90,8 @@ describe("The component ", () => {
         const user = userEvent.setup();
         render(
             <ChatRoom
-                messages={{}}
+                target={contacts[0]}
+                messages={directMessages}
                 handleOnSubmit={handleOnSubmit}
                 handleOnRender={() => {}}
                 username={username}
@@ -100,19 +103,19 @@ describe("The component ", () => {
     });
 
     it("should have the corresponding classes according to sent/received messages.", () => {
-        contacts.forEach((contact) => {
-            const messages = validEntries.privateMessages.valid[contact];
-            if (messages) {
+        contacts.forEach((contactOriginalCase) => {
+            const contact = contactOriginalCase.toLowerCase();
+            if (directMessages[contact]) {
                 render(
                     <ChatRoom
                         target={contact}
-                        messages={messages}
+                        messages={directMessages}
                         handleOnSubmit={() => {}}
                         handleOnRender={() => {}}
                         username={username}
                     />,
                 );
-                const messagesArr = Object.values(messages);
+                const messagesArr = Object.values(directMessages[contact].messages);
                 messagesArr.forEach((message) => {
                     const div = screen.getByText(message.content);
                     const container = div.parentNode;
@@ -129,14 +132,14 @@ describe("The component ", () => {
     });
 
     it("should call the function handleOnRender once", () => {
-        contacts.forEach((contact) => {
-            const messages = validEntries.privateMessages.valid[contact];
-            if (messages) {
+        contacts.forEach((contactOriginalCase) => {
+            const contact = contactOriginalCase.toLowerCase();
+            if (directMessages[contact]) {
                 const handleOnRender = vi.fn();
                 render(
                     <ChatRoom
                         target={contact}
-                        messages={messages}
+                        messages={directMessages}
                         handleOnSubmit={() => {}}
                         handleOnRender={handleOnRender}
                         username={username}

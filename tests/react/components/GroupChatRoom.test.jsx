@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 
 const groups = validEntries.groupList;
 const username = validEntries.user.publicUsername;
+const groupMessages = validEntries.groupMessages.valid;
 
 // scrollIntoView is not defined in the jest module, so we define it here
 window.HTMLElement.prototype.scrollIntoView = vi.fn;
@@ -17,12 +18,13 @@ describe("The component ", () => {
             const groupName = group.name;
             const { unmount } = render(
                 <GroupChatRoom
-                    messages={{}}
+                    id={group.id}
+                    name={groupName}
+                    members={group.members}
+                    messages={groupMessages}
                     handleOnSubmit={() => {}}
                     handleOnRender={() => {}}
                     username={username}
-                    groupName={groupName}
-                    members={group.members}
                 />,
             );
             const div = screen.getByText(groupName, { exact: false });
@@ -34,28 +36,26 @@ describe("The component ", () => {
     it("should render only the names of the users who sent messages", () => {
         groups.forEach((group) => {
             const members = group.members;
-            const messages = validEntries.groupMessages.valid[group.id];
+            const messages = validEntries.groupMessages.valid[group.id].messages;
             const { unmount } = render(
                 <GroupChatRoom
-                    messages={messages}
+                    id={group.id}
+                    name={group.name}
+                    members={group.members}
+                    messages={groupMessages}
                     handleOnSubmit={() => {}}
                     handleOnRender={() => {}}
                     username={username}
-                    groupName={group.name}
-                    members={members}
                 />,
             );
             // let's check that all members that send message appear
-            const memberAppears = {};
-            members.forEach((member) => (memberAppears[member] = false));
-            for (const messageID in messages) {
-                const author = messages[messageID].author;
-                if (author !== username) {
-                    memberAppears[author] = true;
-                }
+            const membersToBeShown = {};
+            for (const messageId in messages) {
+                const author = messages[messageId].author;
+                membersToBeShown[author] = true;
             }
             members.forEach((member) => {
-                if (memberAppears[member]) {
+                if (member !== username && membersToBeShown[member]) {
                     expect(screen.queryByText(member)).toBeInTheDocument();
                 } else {
                     expect(screen.queryByText(member)).not.toBeInTheDocument();
@@ -68,23 +68,24 @@ describe("The component ", () => {
     it("should have a double tick for the messages sent by the user that have been read by all the other users.", () => {
         groups.forEach((group) => {
             const members = group.members;
-            const messages = validEntries.groupMessages.valid[group.id];
+            const messages = validEntries.groupMessages.valid[group.id].messages;
             const { unmount } = render(
                 <GroupChatRoom
-                    messages={messages}
+                    id={group.id}
+                    name={group.name}
+                    members={group.members}
+                    messages={groupMessages}
                     handleOnSubmit={() => {}}
                     handleOnRender={() => {}}
                     username={username}
-                    groupName={group.name}
-                    members={members}
                 />,
             );
-            for (const id in messages) {
-                const message = messages[id];
-                const imgRead = screen.queryByTestId(id).querySelector("img");
+            for (const messageId in messages) {
+                const message = messages[messageId];
+                const imgRead = screen.queryByTestId(messageId).querySelector("img");
                 if (message.author === username) {
                     expect(imgRead).toBeInTheDocument();
-                    if (message.readBy.length === members.length - 1) {
+                    if (message.read.length === members.length - 1) {
                         expect(imgRead.src.includes("read")).toBeTruthy();
                     } else {
                         expect(imgRead.src.includes("notRead")).toBeTruthy();

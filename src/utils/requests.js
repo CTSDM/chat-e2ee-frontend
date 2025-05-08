@@ -62,8 +62,8 @@ async function submitSignup(data) {
     }
 }
 
-async function getPublicKey(user) {
-    const url = `${env.serverUrl}/users/${user}/keys`;
+async function getPublicKey(endPoint, context) {
+    const url = `${env.serverUrl}/${endPoint}/${context}/keys`;
     try {
         const response = await fetch(url, {
             mode: "cors",
@@ -89,6 +89,7 @@ async function getPublicKey(user) {
         return { message: "The server looks like is down, please try again later." };
     }
 }
+
 async function submitLogout(controller) {
     const url = `${env.serverUrl}/logout`;
     try {

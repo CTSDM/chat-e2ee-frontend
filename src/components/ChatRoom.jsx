@@ -4,27 +4,29 @@ import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
 import { useEffect, useRef } from "react";
+import utils from "../utils/chatUtils.js";
 
 function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
+    const messagesArr = utils.getCurrentMessages(messages, target.toLowerCase());
 
     useEffect(() => {
-        if (messages) {
-            const len = Object.keys(messages).length;
+        if (messagesArr) {
+            const len = messagesArr.length;
             if (messagesLength.current !== len) {
                 messagesLength.current = len;
-                handleOnRender(messages);
+                handleOnRender(messagesArr);
             }
         }
         // we focus the input
         if (refForm.current) {
             refForm.current.focus();
         }
-    }, [handleOnRender, messages]);
+    }, [handleOnRender, messagesArr]);
 
-    if (!messages) {
+    if (!messagesArr) {
         return <div></div>;
     }
 
@@ -39,20 +41,15 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         }
     }
 
-    // we need to convert an object into an array
-    // we only need the values
-    const messagesArr = Object.values(messages);
-    const messagesId = Object.keys(messages);
-
     return (
         <div className={styles.container}>
             <div className={styles.contact}>{target}</div>
             <div className={styles.messagesContainer}>
-                {messagesArr.map((message, index) => (
+                {messagesArr.map((message) => (
                     <MessageBubble
-                        key={messagesId[index]}
-                        id={messagesId[index]}
-                        message={message.content}
+                        key={message.id}
+                        id={message.id}
+                        content={message.content}
                         author={message.author}
                         date={message.createdAt}
                         isRead={message.read}
@@ -76,14 +73,18 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
 ChatRoom.propTypes = {
     target: PropTypes.string,
     username: PropTypes.string.isRequired,
-    messages: PropTypes.objectOf(
-        PropTypes.shape({
-            author: PropTypes.string.isRequired,
-            content: PropTypes.string.isRequired,
-            createdAt: PropTypes.object.isRequired,
-            read: PropTypes.bool.isRequired,
-        }).isRequired,
-    ).isRequired,
+    messages: PropTypes.oneOfType([
+        PropTypes.objectOf(
+            PropTypes.shape({
+                id: PropTypes.string.isRequired,
+                author: PropTypes.string.isRequired,
+                content: PropTypes.string.isRequired,
+                createdAt: PropTypes.object.isRequired,
+                read: PropTypes.bool.isRequired,
+            }).isRequired,
+        ),
+        PropTypes.object.isRequired,
+    ]),
     handleOnSubmit: PropTypes.func.isRequired,
     handleOnRender: PropTypes.func.isRequired,
 };

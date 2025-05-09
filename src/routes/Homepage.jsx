@@ -85,6 +85,7 @@ export default function Homepage() {
                 contactList,
                 setChatMessages,
                 userVars,
+                chatMessages,
             );
         }
     }
@@ -220,8 +221,6 @@ export default function Homepage() {
         });
     }
 
-    async function readGroupMessages(messages, groupId) {}
-
     async function readMessages(messages, groupId) {
         // messages is an obj
         // we are reading the messages of the currentTarget
@@ -231,10 +230,7 @@ export default function Homepage() {
             if (groupId) {
                 if (message.author !== publicUsername && !message.read.includes(publicUsername)) {
                     message.read.push(publicUsername);
-                    const usernameBuff = dataManipulation.stringToUint8Array(
-                        publicUsername.toLowerCase(),
-                        16,
-                    );
+                    const usernameBuff = dataManipulation.stringToUint8Array(publicUsername, 16);
                     const messageIdBuff = dataManipulation.stringToUint8Array(message.id);
                     const dateArr = dataManipulation.stringToUint8Array(
                         new Date().getTime().toString(),

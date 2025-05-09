@@ -5,7 +5,7 @@ import { cryptoUtils } from "../utils/utils.js";
 
 let socket = null;
 
-function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessages, userVars) {
+function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars, chat) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
@@ -49,11 +49,19 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
             const context = dataManipulation.arrBufferToString(data.slice(0, 48));
             const contextType = context.length === 36 ? "group" : "user";
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
-            if (contactList.current[context]) {
+            const msgId = dataManipulation.arrBufferToString(data.slice(64, 100));
+            // On startup, to avoid that the acknowledge message gets processed before the actual content of the message does
+            // we create a pair promise/resolver to manage this
+            const isMessageCreated = !!chat[context] && !!chat[context].messages[msgId];
+            if (!isMessageCreated && !cryptoPromisesHandler[msgId]) {
+                const { promise, resolver } = promiseHelper();
+                cryptoPromisesHandler[msgId] = { promise, resolver };
+            }
+            if (contacts.current[context]) {
                 if (codeMessage === 1) {
-                    contactList.current = {
-                        [context]: contactList.current[context],
-                        ...contactList.current,
+                    contacts.current = {
+                        [context]: contacts.current[context],
+                        ...contacts.current,
                     };
                 }
             } else {
@@ -66,8 +74,8 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                         contextType,
                         selfPrivateKey,
                         userVars.current.salt,
-                        contactList,
-                        setChatMessages,
+                        contacts,
+                        setChat,
                     );
                 } else {
                     const groupInfo = { id: context };
@@ -75,33 +83,34 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                         groupInfo,
                         reqPromisesHandler,
                         cryptoPromisesHandler,
-                        contactList,
+                        contacts,
                         selfPrivateKey,
                         userVars,
-                        setChatMessages,
+                        setChat,
                         symKey,
                     );
                 }
                 // we move the current contact to the top
                 // for now this is how the preview messages are ordered
-                contactList.current = {
-                    [context]: contactList.current[context],
-                    ...contactList.current,
+                contacts.current = {
+                    [context]: contacts.current[context],
+                    ...contacts.current,
                 };
             }
             // we need to decrypt now!
-            const messageId = dataManipulation.arrBufferToString(data.slice(64, 100));
-            const sharedKey = contactList.current[context].key;
+            const sharedKey = contacts.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
+                cryptoPromisesHandler[msgId].db = true;
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
                 const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
                 const ivBuffer = data.slice(117, 129);
-                const messageDecrypted = await cryptoUtils.getDecryptedMessage(
+                cryptoPromisesHandler[msgId].decryptPromise = cryptoUtils.getDecryptedMessage(
                     sharedKey,
                     { name: "AES-GCM", iv: new Uint8Array(ivBuffer) },
                     data.slice(129),
                 );
-                setChatMessages((previousChatMessages) => {
+                const messageDecrypted = await cryptoPromisesHandler[msgId].decryptPromise;
+                setChat((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     const newMessage = {
                         author: sender,
@@ -120,19 +129,32 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                             newMessage.read = false;
                         }
                     }
-                    newChatMessages[context].messages[messageId] = newMessage;
+                    newChatMessages[context].messages[msgId] = newMessage;
                     return newChatMessages;
                 });
+                // we use a setTimeout to make sure the promise resolves after setChatMessages state updates
+                setTimeout(() => {
+                    if (cryptoPromisesHandler[msgId].promise)
+                        cryptoPromisesHandler[msgId].resolver();
+                    delete cryptoPromisesHandler[msgId];
+                }, 0);
             } else if (codeMessage === 2) {
                 // we update the read status of our own message
-                setChatMessages((previousChatMessages) => {
+                // we check and manage the promise handlers
+                if (cryptoPromisesHandler[msgId]) {
+                    if (cryptoPromisesHandler[msgId].db && cryptoPromisesHandler[msgId].promise) {
+                        await cryptoPromisesHandler[msgId].promise;
+                    }
+                }
+                setChat((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);
                     if (contextType === "user") {
-                        newChatMessages[context].messages[messageId].read = true;
+                        newChatMessages[context].messages[msgId].read = true;
                     } else {
-                        // we add the sender of the message to the read array
-                        newChatMessages[context].messages[messageId].read.push(sender);
+                        // we add the sender of the message to the read array in case it is not already added
+                        if (!newChatMessages[context].messages[msgId].read.includes(sender))
+                            newChatMessages[context].messages[msgId].read.push(sender);
                     }
                     return newChatMessages;
                 });
@@ -151,10 +173,10 @@ function start(publicUsername, selfPrivateKey, symKey, contactList, setChatMessa
                 groupInfo,
                 reqPromisesHandler,
                 cryptoPromisesHandler,
-                contactList,
+                contacts,
                 selfPrivateKey,
                 userVars,
-                setChatMessages,
+                setChat,
                 symKey,
             );
         }
@@ -302,6 +324,12 @@ function createChatEntry(context, username, setMessages) {
         newChatMessages[context] = { name: username, messages: {} };
         return newChatMessages;
     });
+}
+
+function promiseHelper() {
+    let resolver;
+    const promise = new Promise((resolve) => (resolver = resolve));
+    return { promise, resolver };
 }
 
 export default { start, getSocket, sendMessage, closeSocket };

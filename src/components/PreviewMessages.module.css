@@ -35,6 +35,10 @@ button.container>div {
   color: #73b9f5;
 }
 
+.otherWithinGroup {
+  color: lightcoral;
+}
+
 .selected {
   background-color: #2b5278;
 }

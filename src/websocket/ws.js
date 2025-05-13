@@ -100,7 +100,6 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             // we need to decrypt now!
             const sharedKey = contacts.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
-                cryptoPromisesHandler[msgId].db = true;
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
                 const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
                 const ivBuffer = data.slice(117, 129);
@@ -132,19 +131,13 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                     newChatMessages[context].messages[msgId] = newMessage;
                     return newChatMessages;
                 });
-                // we use a setTimeout to make sure the promise resolves after setChatMessages state updates
-                setTimeout(() => {
-                    if (cryptoPromisesHandler[msgId].promise)
-                        cryptoPromisesHandler[msgId].resolver();
-                    delete cryptoPromisesHandler[msgId];
-                }, 0);
+                if (cryptoPromisesHandler[msgId].promise) cryptoPromisesHandler[msgId].resolver();
+                delete cryptoPromisesHandler[msgId];
             } else if (codeMessage === 2) {
                 // we update the read status of our own message
                 // we check and manage the promise handlers
-                if (cryptoPromisesHandler[msgId]) {
-                    if (cryptoPromisesHandler[msgId].db && cryptoPromisesHandler[msgId].promise) {
-                        await cryptoPromisesHandler[msgId].promise;
-                    }
+                if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
+                    await cryptoPromisesHandler[msgId].promise;
                 }
                 setChat((previousChatMessages) => {
                     // we update the read status of the message with the given id

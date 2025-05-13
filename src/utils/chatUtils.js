@@ -28,4 +28,18 @@ function orderChatRoom(messages) {
     return messagesArr;
 }
 
-export default { getCurrentMessages, orderChatRoom };
+function checkRead(context, message) {
+    console.log(context);
+    console.log(message);
+    if (message) {
+        if (context > 16) {
+            return message.read.length === context.members.length - 1;
+        } else {
+            return message.read;
+        }
+    } else {
+        return false;
+    }
+}
+
+export default { getCurrentMessages, orderChatRoom, checkRead };

@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
+import chatUtils from "../utils/chatUtils.js";
 
 export default function Homepage() {
     const {
@@ -303,6 +304,7 @@ export default function Homepage() {
                             contact={contactList.current[contact].name}
                             username={publicUsername}
                             message={message}
+                            readStatus={chatUtils.checkRead(contactList.current[contact], message)}
                             target={currentTarget}
                             handleOnClick={previewOnClick}
                         />

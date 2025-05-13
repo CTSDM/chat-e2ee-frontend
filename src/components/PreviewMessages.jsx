@@ -1,11 +1,21 @@
 import PropTypes from "prop-types";
 import styles from "./PreviewMessages.module.css";
+import { dataManipulationUtils as dataManipulation } from "../utils/utils";
+import notReadImg from "../assets/notRead.svg";
+import readImg from "../assets/read.svg";
 
-function PreviewMessages({ contact, id, target, username, message, handleOnClick }) {
+function PreviewMessages({ contact, id, target, username, message, handleOnClick, readStatus }) {
     let divContentLastMessage = <div>No messages yet...</div>;
+    let dateFormatted;
+    let isAuthorUser;
+    let readStatusObj;
     if (message) {
+        isAuthorUser = message.author === username;
+        dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
         const spanContent = <span className={styles.text}>{message.content}</span>;
-        if (message.author === username) {
+        if (isAuthorUser) {
+            if (readStatus) readStatusObj = { src: notReadImg, alt: "not yet read" };
+            else readStatusObj = { src: readImg, alt: "read" };
             divContentLastMessage = (
                 <div>
                     <span className={styles.self}>You: </span>
@@ -13,7 +23,16 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
                 </div>
             );
         } else {
-            divContentLastMessage = <div>{spanContent}</div>;
+            if (id.length > 16) {
+                divContentLastMessage = (
+                    <div>
+                        <span className={styles.otherWithinGroup}>{message.author}:</span>
+                        {spanContent}
+                    </div>
+                );
+            } else {
+                divContentLastMessage = <div>{spanContent}</div>;
+            }
         }
     }
 
@@ -32,11 +51,13 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
         >
             <div className={styles.row}>
                 <div className={styles.other}>{contact}</div>
-                <div>date here</div>
+                <div>{dateFormatted}</div>
             </div>
             <div className={styles.row}>
                 {divContentLastMessage}
-                <div>status message here</div>
+                {readStatus && isAuthorUser ? (
+                    <img src={readStatusObj.src} alt={readStatusObj.alt} />
+                ) : null}
             </div>
         </button>
     );
@@ -47,6 +68,7 @@ PreviewMessages.propTypes = {
     target: PropTypes.string,
     contact: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
+    readStatus: PropTypes.bool,
     message: PropTypes.shape({
         author: PropTypes.string.isRequired,
         content: PropTypes.string.isRequired,

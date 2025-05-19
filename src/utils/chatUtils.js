@@ -28,12 +28,10 @@ function orderChatRoom(messages) {
     return messagesArr;
 }
 
-function checkRead(context, message) {
-    console.log(context);
-    console.log(message);
+function checkRead(contextObj, message) {
     if (message) {
-        if (context > 16) {
-            return message.read.length === context.members.length - 1;
+        if (contextObj.type === "group") {
+            return message.read.length === contextObj.members.length - 1;
         } else {
             return message.read;
         }

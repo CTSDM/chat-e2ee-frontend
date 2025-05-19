@@ -14,8 +14,8 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
         dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
         const spanContent = <span className={styles.text}>{message.content}</span>;
         if (isAuthorUser) {
-            if (readStatus) readStatusObj = { src: notReadImg, alt: "not yet read" };
-            else readStatusObj = { src: readImg, alt: "read" };
+            if (readStatus) readStatusObj = { src: readImg, alt: "read" };
+            else readStatusObj = { src: notReadImg, alt: "not yet read" };
             divContentLastMessage = (
                 <div>
                     <span className={styles.self}>You: </span>
@@ -55,7 +55,7 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
             </div>
             <div className={styles.row}>
                 {divContentLastMessage}
-                {readStatus && isAuthorUser ? (
+                {readStatus !== null && isAuthorUser ? (
                     <img src={readStatusObj.src} alt={readStatusObj.alt} />
                 ) : null}
             </div>

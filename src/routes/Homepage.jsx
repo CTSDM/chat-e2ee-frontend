@@ -86,7 +86,6 @@ export default function Homepage() {
                 contactList,
                 setChatMessages,
                 userVars,
-                chatMessages,
             );
         }
     }
@@ -218,6 +217,7 @@ export default function Homepage() {
                 newMessage.read = false;
             }
             newMessages[currentTarget].messages[id] = newMessage;
+            newMessages[currentTarget].last = id;
             return newMessages;
         });
     }
@@ -290,13 +290,8 @@ export default function Homepage() {
                 <SearchMessages />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
                 {contactNames.map((contact) => {
-                    let message = undefined;
-                    if (
-                        chatMessages[contact] &&
-                        Object.keys(chatMessages[contact].messages).length > 0
-                    ) {
-                        message = Object.values(chatMessages[contact].messages).at(-1);
-                    }
+                    const lastMessageId = chatMessages[contact].last;
+                    const message = chatMessages[contact].messages[lastMessageId];
                     return (
                         <PreviewMessages
                             key={contact}

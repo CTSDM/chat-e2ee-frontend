@@ -5,7 +5,7 @@ import { cryptoUtils } from "../utils/utils.js";
 
 let socket = null;
 
-function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars, chat) {
+function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
@@ -15,6 +15,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
     socket.addEventListener("message", onMessage);
     const reqPromisesHandler = {};
     const cryptoPromisesHandler = {};
+    const messageIndexes = {};
 
     function onError(err) {
         console.error("Websocket error: ", err);
@@ -42,7 +43,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
         // the server will always send an array buffer
         const tempData = event.data;
         const codeMessage = dataManipulation.getNumFromBuffer(tempData.slice(0, 1));
-        // codeMessage: 1 for direct message; 2 acknowledge for reading the message
+        // codeMessage: 1 for a message; 2 acknowledge for reading the message
         const data = event.data.slice(1);
         // the first 48 bytes from data are for the context of the message
         if (codeMessage < 4) {
@@ -50,13 +51,15 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             const contextType = context.length === 36 ? "group" : "user";
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
             const msgId = dataManipulation.arrBufferToString(data.slice(64, 100));
+            // we create an index to keep track of the message index.
+            if (!messageIndexes[context]) messageIndexes[context] = 0;
+            let indexMessage;
+            if (codeMessage === 1 || codeMessage === 3) {
+                indexMessage = messageIndexes[context];
+                ++messageIndexes[context];
+            }
             // On startup, to avoid that the acknowledge message gets processed before the actual content of the message does
             // we create a pair promise/resolver to manage this
-            const isMessageCreated = !!chat[context] && !!chat[context].messages[msgId];
-            if (!isMessageCreated && !cryptoPromisesHandler[msgId]) {
-                const { promise, resolver } = promiseHelper();
-                cryptoPromisesHandler[msgId] = { promise, resolver };
-            }
             if (contacts.current[context]) {
                 if (codeMessage === 1) {
                     contacts.current = {
@@ -100,6 +103,12 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             // we need to decrypt now!
             const sharedKey = contacts.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
+                if (sender === publicUsername || contextType === "group") {
+                    const { promise, resolver } = promiseHelper();
+                    cryptoPromisesHandler[msgId] = { promise, resolver };
+                } else {
+                    cryptoPromisesHandler[msgId] = {};
+                }
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
                 const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
                 const ivBuffer = data.slice(117, 129);
@@ -109,6 +118,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                     data.slice(129),
                 );
                 const messageDecrypted = await cryptoPromisesHandler[msgId].decryptPromise;
+                cryptoPromisesHandler[msgId].decryptPromise = null;
                 setChat((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
                     const newMessage = {
@@ -129,16 +139,29 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         }
                     }
                     newChatMessages[context].messages[msgId] = newMessage;
+                    // the if below can be optimized or delegated to a function
+                    if (!newChatMessages[context].last) {
+                        newChatMessages[context].last = msgId;
+                        newChatMessages[context].lastIndex = indexMessage;
+                    } else if (indexMessage > newChatMessages[context].lastIndex) {
+                        newChatMessages[context].last = msgId;
+                        newChatMessages[context].lastIndex = indexMessage;
+                    }
                     return newChatMessages;
                 });
-                if (cryptoPromisesHandler[msgId].promise) cryptoPromisesHandler[msgId].resolver();
-                delete cryptoPromisesHandler[msgId];
+                if (cryptoPromisesHandler[msgId].promise) {
+                    cryptoPromisesHandler[msgId].resolver();
+                } else {
+                    delete cryptoPromisesHandler[msgId];
+                }
             } else if (codeMessage === 2) {
                 // we update the read status of our own message
+                // that is, only those messages where sender is this user should be accepted, right?
                 // we check and manage the promise handlers
                 if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
                     await cryptoPromisesHandler[msgId].promise;
                 }
+                delete cryptoPromisesHandler[msgId];
                 setChat((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);
@@ -287,12 +310,14 @@ async function createNewContact(
     }
     const response = await promisesHandler[0];
     promisesHandler[0] = null;
+    delete promisesHandler[0];
     if (!promisesHandler[1]) {
         const bobSalt = dataManipulation.objArrToUint8Arr(response.salt);
         promisesHandler[1] = getSharedKey(response.publicKey, privateKey, salt, bobSalt);
     }
     const sharedKey = await promisesHandler[1];
     promisesHandler[1] = null;
+    delete promisesHandler[1];
     if (!contactList.current[context]) {
         addToContactList(contactList, sharedKey, context, response.publicUsername);
         createChatEntry(context, response.publicUsername, setMessages);
@@ -314,7 +339,7 @@ async function getSharedKey(bobPublicKeyObj, alicePrivateKey, aliceSalt, bobSalt
 function createChatEntry(context, username, setMessages) {
     setMessages((previousChatMessages) => {
         const newChatMessages = structuredClone(previousChatMessages);
-        newChatMessages[context] = { name: username, messages: {} };
+        newChatMessages[context] = { name: username, messages: {}, last: undefined };
         return newChatMessages;
     });
 }

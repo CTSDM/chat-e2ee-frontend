@@ -103,7 +103,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             // we need to decrypt now!
             const sharedKey = contacts.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
-                if (sender === publicUsername || contextType === "group") {
+                if (sender === publicUsername && contextType === "group") {
                     const { promise, resolver } = promiseHelper();
                     cryptoPromisesHandler[msgId] = { promise, resolver };
                 } else {
@@ -160,8 +160,8 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 // we check and manage the promise handlers
                 if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
                     await cryptoPromisesHandler[msgId].promise;
+                    delete cryptoPromisesHandler[msgId];
                 }
-                delete cryptoPromisesHandler[msgId];
                 setChat((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);

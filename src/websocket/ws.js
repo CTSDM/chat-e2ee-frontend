@@ -16,6 +16,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
     const reqPromisesHandler = {};
     const cryptoPromisesHandler = {};
     const messageIndexes = {};
+    const messageState = {};
 
     function onError(err) {
         console.error("Websocket error: ", err);
@@ -72,7 +73,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 // i need to improve this
                 if (contextType === "user") {
                     await createNewContact(
-                        [reqPromisesHandler[context], cryptoPromisesHandler[context]],
+                        [reqPromisesHandler, cryptoPromisesHandler],
                         context,
                         contextType,
                         selfPrivateKey,
@@ -103,12 +104,8 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             // we need to decrypt now!
             const sharedKey = contacts.current[context].key;
             if (codeMessage === 1 || codeMessage === 3) {
-                if (sender === publicUsername && contextType === "group") {
-                    const { promise, resolver } = promiseHelper();
-                    cryptoPromisesHandler[msgId] = { promise, resolver };
-                } else {
-                    cryptoPromisesHandler[msgId] = {};
-                }
+                const { promise, resolver } = promiseHelper();
+                cryptoPromisesHandler[msgId] = { promise, resolver };
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
                 const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
                 const ivBuffer = data.slice(117, 129);
@@ -118,6 +115,12 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                     data.slice(129),
                 );
                 const messageDecrypted = await cryptoPromisesHandler[msgId].decryptPromise;
+                cryptoPromisesHandler[msgId].msg = {
+                    author: sender,
+                    content: messageDecrypted,
+                    createdAt: messageDate,
+                    context: context,
+                };
                 cryptoPromisesHandler[msgId].decryptPromise = null;
                 setChat((previousChatMessages) => {
                     const newChatMessages = structuredClone(previousChatMessages);
@@ -137,6 +140,8 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         } else {
                             newMessage.read = false;
                         }
+                        delete cryptoPromisesHandler[msgId];
+                        delete messageState[msgId];
                     }
                     newChatMessages[context].messages[msgId] = newMessage;
                     // the if below can be optimized or delegated to a function
@@ -147,16 +152,17 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         newChatMessages[context].last = msgId;
                         newChatMessages[context].lastIndex = indexMessage;
                     }
+                    if (contextType === "group")
+                        messageState[msgId] = newChatMessages[context].messages[msgId];
                     return newChatMessages;
                 });
-                if (cryptoPromisesHandler[msgId].promise) {
+                if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
                     cryptoPromisesHandler[msgId].resolver();
-                } else {
-                    delete cryptoPromisesHandler[msgId];
                 }
             } else if (codeMessage === 2) {
+                // Messages created by the user live, will only pass here
+                // By then, we can safely assume that they will work correctly
                 // we update the read status of our own message
-                // that is, only those messages where sender is this user should be accepted, right?
                 // we check and manage the promise handlers
                 if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
                     await cryptoPromisesHandler[msgId].promise;
@@ -165,12 +171,34 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 setChat((previousChatMessages) => {
                     // we update the read status of the message with the given id
                     const newChatMessages = structuredClone(previousChatMessages);
-                    if (contextType === "user") {
-                        newChatMessages[context].messages[msgId].read = true;
+                    // we check if the state already exists, if not, we use the designated temporary object
+                    if (newChatMessages[context].messages[msgId]) {
+                        if (contextType === "user") {
+                            newChatMessages[context].messages[msgId].read = true;
+                        } else {
+                            // we add the sender of the message to the read array in case it is not already added
+                            // only when the current user is the author of the message being sent
+                            if (
+                                newChatMessages[context].messages[msgId].author === publicUsername
+                            ) {
+                                if (!newChatMessages[context].messages[msgId].read.includes(sender))
+                                    newChatMessages[context].messages[msgId].read.push(sender);
+                            }
+                        }
+                        if (messageState[msgId]) delete messageState[msgId];
                     } else {
-                        // we add the sender of the message to the read array in case it is not already added
-                        if (!newChatMessages[context].messages[msgId].read.includes(sender))
-                            newChatMessages[context].messages[msgId].read.push(sender);
+                        if (contextType === "user") {
+                            messageState[msgId].read = true;
+                            newChatMessages[context].messages[msgId] = messageState[msgId];
+                            delete messageState[msgId];
+                        } else {
+                            if (messageState[msgId].author === publicUsername) {
+                                if (!messageState[msgId].read.includes(sender)) {
+                                    messageState[msgId].read.push(sender);
+                                    newChatMessages[context].messages[msgId] = messageState[msgId];
+                                }
+                            }
+                        }
                     }
                     return newChatMessages;
                 });
@@ -237,19 +265,16 @@ async function setupNewGroup(
     setChat,
     symKey,
 ) {
-    const groupAdditionalInfo = await getGroupInfo(groupInfo.id, reqPromisesHandler[groupInfo.id]);
+    const groupAdditionalInfo = await getGroupInfo(groupInfo.id, reqPromisesHandler);
     Object.assign(groupInfo, groupAdditionalInfo);
-    const reqHandlerCreator = reqPromisesHandler[groupInfo.creator];
-    const cryptoHandlerCreator = cryptoPromisesHandler[groupInfo.creator];
-    const cryptoHandlerGroup = cryptoPromisesHandler[groupInfo.id];
     // if there is a final key it means that we can decrypt the key using the symmetric key
     // otherwise the key can de decrypted using the key from the DH exchange with the creator of the group
     // thus, we only fetch the info with the creator if they are not in the contact list.
     if (groupInfo.finalKey) {
-        groupInfo.key = await getGroupKey(cryptoHandlerGroup, groupInfo, symKey);
+        groupInfo.key = await getGroupKey(cryptoPromisesHandler, groupInfo, symKey);
     } else {
         await createNewContact(
-            [reqHandlerCreator, cryptoHandlerCreator],
+            [reqPromisesHandler, cryptoPromisesHandler],
             groupInfo.creator,
             "user",
             privateKey,
@@ -258,7 +283,7 @@ async function setupNewGroup(
             setChat,
         );
         const sharedKey = contacts.current[groupInfo.creator].key;
-        groupInfo.key = await getGroupKey(cryptoHandlerGroup, groupInfo, sharedKey);
+        groupInfo.key = await getGroupKey(cryptoPromisesHandler, groupInfo, sharedKey);
     }
     if (!contacts.current[groupInfo.id]) {
         addToContactList(contacts, groupInfo.key, groupInfo.id, groupInfo.name, groupInfo.members);
@@ -268,11 +293,12 @@ async function setupNewGroup(
 
 async function getGroupInfo(groupId, reqPromiseHandler) {
     // this function will retrieve the key through the API
-    if (!reqPromiseHandler) {
-        reqPromiseHandler = requests.getPublicKey("group", groupId);
+    if (!reqPromiseHandler[groupId]) {
+        reqPromiseHandler[groupId] = requests.getPublicKey("group", groupId);
     }
-    const response = await reqPromiseHandler;
-    reqPromiseHandler = null;
+    const response = await reqPromiseHandler[groupId];
+    reqPromiseHandler[groupId] = null;
+    delete reqPromiseHandler[groupId];
     return {
         name: response.name,
         creator: response.creator,
@@ -284,15 +310,16 @@ async function getGroupInfo(groupId, reqPromiseHandler) {
 }
 
 async function getGroupKey(cryptoPromiseHandler, groupInfo, keyToUse) {
-    if (!cryptoPromiseHandler) {
-        cryptoPromiseHandler = cryptoUtils.getDecryptedKey(
+    if (!cryptoPromiseHandler[groupInfo.id]) {
+        cryptoPromiseHandler[groupInfo.id] = cryptoUtils.getDecryptedKey(
             keyToUse,
             groupInfo.iv,
             groupInfo.keyEncrypted,
         );
     }
-    const key = await cryptoUtils.importKeyAESGCM(await cryptoPromiseHandler);
-    cryptoPromiseHandler = null;
+    const key = await cryptoUtils.importKeyAESGCM(await cryptoPromiseHandler[groupInfo.id]);
+    cryptoPromiseHandler[groupInfo.id] = null;
+    delete cryptoPromiseHandler[groupInfo.id];
     return key;
 }
 
@@ -305,19 +332,19 @@ async function createNewContact(
     contactList,
     setMessages,
 ) {
-    if (!promisesHandler[0]) {
-        promisesHandler[0] = requests.getPublicKey(contextType, context);
+    if (!promisesHandler[0][context]) {
+        promisesHandler[0][context] = requests.getPublicKey(contextType, context);
     }
-    const response = await promisesHandler[0];
-    promisesHandler[0] = null;
-    delete promisesHandler[0];
-    if (!promisesHandler[1]) {
+    const response = await promisesHandler[0][context];
+    promisesHandler[0][context] = null;
+    delete promisesHandler[0][context];
+    if (!promisesHandler[1][context]) {
         const bobSalt = dataManipulation.objArrToUint8Arr(response.salt);
-        promisesHandler[1] = getSharedKey(response.publicKey, privateKey, salt, bobSalt);
+        promisesHandler[1][context] = getSharedKey(response.publicKey, privateKey, salt, bobSalt);
     }
-    const sharedKey = await promisesHandler[1];
-    promisesHandler[1] = null;
-    delete promisesHandler[1];
+    const sharedKey = await promisesHandler[1][context];
+    promisesHandler[1][context] = null;
+    delete promisesHandler[1][context];
     if (!contactList.current[context]) {
         addToContactList(contactList, sharedKey, context, response.publicUsername);
         createChatEntry(context, response.publicUsername, setMessages);

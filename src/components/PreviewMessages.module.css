@@ -2,12 +2,6 @@
   background: #17212b;
 }
 
-.container>div {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-
 .container:focus {
   outline: none;
 }
@@ -20,10 +14,12 @@ button.container {
   border-radius: 0;
   width: 100%;
   display: grid;
+  height: 60px;
 }
 
-button.container>div {
-  margin-right: auto;
+.img {
+  width: 25px;
+  height: 25px;
 }
 
 .other {
@@ -45,4 +41,29 @@ button.container>div {
 
 .text {
   color: #7f91a4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.row {
+  max-width: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.row>div {
+  min-width: 0;
+}
+
+.row>div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+}
+
+.date {
+  flex-shrink: 0;
 }

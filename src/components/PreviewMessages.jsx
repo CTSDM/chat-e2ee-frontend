@@ -5,7 +5,7 @@ import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 
 function PreviewMessages({ contact, id, target, username, message, handleOnClick, readStatus }) {
-    let divContentLastMessage = <div>No messages yet...</div>;
+    let divContentPreview = <div>No messages yet...</div>;
     let dateFormatted;
     let isAuthorUser;
     let readStatusObj;
@@ -16,22 +16,22 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
         if (isAuthorUser) {
             if (readStatus) readStatusObj = { src: readImg, alt: "read" };
             else readStatusObj = { src: notReadImg, alt: "not yet read" };
-            divContentLastMessage = (
+            divContentPreview = (
                 <div>
-                    <span className={styles.self}>You: </span>
+                    <span className={styles.self}>You:&nbsp;</span>
                     {spanContent}
                 </div>
             );
         } else {
             if (id.length > 16) {
-                divContentLastMessage = (
+                divContentPreview = (
                     <div>
-                        <span className={styles.otherWithinGroup}>{message.author}:</span>
+                        <span className={styles.otherWithinGroup}>{message.author}:&nbsp;</span>
                         {spanContent}
                     </div>
                 );
             } else {
-                divContentLastMessage = <div>{spanContent}</div>;
+                divContentPreview = <div>{spanContent}</div>;
             }
         }
     }
@@ -51,12 +51,12 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
         >
             <div className={styles.row}>
                 <div className={styles.other}>{contact}</div>
-                <div>{dateFormatted}</div>
+                <div className={styles.date}>{dateFormatted}</div>
             </div>
             <div className={styles.row}>
-                {divContentLastMessage}
+                {divContentPreview}
                 {readStatus !== null && isAuthorUser ? (
-                    <img src={readStatusObj.src} alt={readStatusObj.alt} />
+                    <img className={styles.img} src={readStatusObj.src} alt={readStatusObj.alt} />
                 ) : null}
             </div>
         </button>

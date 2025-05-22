@@ -8,6 +8,10 @@
   overflow: hidden;
 }
 
+.leftSide {
+  min-width: 300px;
+}
+
 .rightSide {
   display: grid;
   height: 100%;

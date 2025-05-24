@@ -1,0 +1,14 @@
+.container {
+  display: flex;
+  padding: 5px;
+}
+
+.searchBar {
+  flex-grow: 1;
+  border-radius: 10px;
+  padding: 5px;
+  padding-left: 5px;
+  padding-right: 3px;
+  font-size: 1rem;
+  background-color: #242F3D;
+}

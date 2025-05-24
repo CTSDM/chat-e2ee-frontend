@@ -10,18 +10,20 @@ function getCurrentMessages(messagesObj, target) {
     } else return undefined;
 }
 
-function orderChatRoom(messages) {
+function orderChatRoom(messages, desc) {
     // the chatrooms will be ordered by date
+    // desc === true, otherwise the order is asc
     const messagesArr = [];
     for (let key in messages) {
         const message = messages[key];
         message.id = key;
         messagesArr.push(message);
     }
+    const order = desc ? -1 : 1;
     if (messagesArr.length > 1) {
         messagesArr.sort((a, b) => {
-            if (a.createdAt > b.createdAt) return 1;
-            else if (a.createdAt < b.createdAt) return -1;
+            if (a.createdAt > b.createdAt) return order;
+            else if (a.createdAt < b.createdAt) return -1 * order;
             return 0;
         });
     }

@@ -4,13 +4,13 @@ import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./GroupChatRoom.module.css";
 import { useEffect, useRef } from "react";
-import utils from "../utils/chatUtils.js";
+import { chatUtils } from "../utils/utils.js";
 
 function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, name, id, members }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
-    const messagesArr = utils.getCurrentMessages(messages, id);
+    const messagesArr = chatUtils.getCurrentMessages(messages, id);
 
     useEffect(() => {
         if (messagesArr) {
@@ -20,11 +20,14 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, nam
                 handleOnRender(messagesArr, id);
             }
         }
-        // we focus the input
+    }, [handleOnRender, messagesArr, id]);
+
+    useEffect(() => {
+        // we focus the input only on the first render
         if (refForm.current) {
             refForm.current.focus();
         }
-    }, [handleOnRender, messagesArr, id]);
+    }, []);
 
     if (!messagesArr) {
         return <div></div>;

@@ -47,7 +47,7 @@ function PreviewMessages({ contact, id, target, username, message, handleOnClick
         <button
             type="button"
             className={stylesContainer}
-            onClick={() => handleOnClick(id.toLowerCase())}
+            onClick={() => handleOnClick(id.toLowerCase(), message.id)}
         >
             <div className={styles.row}>
                 <div className={styles.other}>{contact}</div>
@@ -73,6 +73,7 @@ PreviewMessages.propTypes = {
         author: PropTypes.string.isRequired,
         content: PropTypes.string.isRequired,
         createdAt: PropTypes.object.isRequired,
+        id: PropTypes.string,
     }),
     handleOnClick: PropTypes.func.isRequired,
 };

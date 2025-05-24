@@ -3,20 +3,24 @@
   overflow: hidden;
 }
 
-.rightSide,
-.leftSide {
-  overflow: hidden;
-}
-
-.leftSide {
-  min-width: 300px;
-}
-
 .rightSide {
+  overflow: hidden;
   display: grid;
   height: 100%;
   background-color: #0E1621;
   flex-grow: 1;
+}
+
+.rightSide>div {
+  max-width: 700px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.leftSide {
+  min-width: 300px;
+  overflow-y: auto;
 }
 
 .resizeHandler {
@@ -27,4 +31,9 @@
 
 .resizeHandler:hover {
   cursor: ew-resize;
+}
+
+.view {
+  background-color: red;
+  transition: background-color 1s ease;
 }

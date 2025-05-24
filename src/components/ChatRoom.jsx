@@ -4,13 +4,13 @@ import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
 import { useEffect, useRef } from "react";
-import utils from "../utils/chatUtils.js";
+import { chatUtils } from "../utils/utils.js";
 
 function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
-    const messagesArr = utils.getCurrentMessages(messages, target.toLowerCase());
+    const messagesArr = chatUtils.getCurrentMessages(messages, target.toLowerCase());
 
     useEffect(() => {
         if (messagesArr) {
@@ -21,10 +21,13 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
             }
         }
         // we focus the input
+    }, [handleOnRender, messagesArr]);
+
+    useEffect(() => {
         if (refForm.current) {
             refForm.current.focus();
         }
-    }, [handleOnRender, messagesArr]);
+    }, []);
 
     if (!messagesArr) {
         return <div></div>;

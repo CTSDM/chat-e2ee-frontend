@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
-import chatUtils from "../utils/chatUtils.js";
+import { chatUtils } from "../utils/utils.js";
 
 export default function Homepage() {
     const {
@@ -31,8 +31,11 @@ export default function Homepage() {
 
     const [widthSidebar, setWidthSidebar] = useState(400);
     const [errMessages, setErrMessages] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResult, setSearchResult] = useState({});
     const isResize = useRef(false);
     const [currentTarget, setCurrentTarget] = useState(null);
+    const [targetMessage, setTargetMessage] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -71,6 +74,28 @@ export default function Homepage() {
             navigate("/login");
         }
     });
+
+    // scroll into view the message that comes back from the result
+    useEffect(() => {
+        let removalClassHandler;
+        let divContainer;
+        if (targetMessage) {
+            const t = 1000;
+            const divMessage = document.getElementById(targetMessage);
+            divContainer = divMessage.parentElement;
+            divContainer.classList.add(styles.view);
+            divContainer.scrollIntoView();
+            removalClassHandler = setTimeout(() => {
+                divContainer.classList.remove(styles.view);
+            }, t);
+        }
+        return () => {
+            if (divContainer) {
+                divContainer.classList.remove(styles.view);
+            }
+            if (removalClassHandler && !targetMessage) clearTimeout(removalClassHandler);
+        };
+    }, [targetMessage, setTargetMessage]);
 
     if (isLogged === false || privateKey === null) {
         return null;
@@ -137,6 +162,11 @@ export default function Homepage() {
         // we change the current target, and thus the shown messages will change
         // the chat will be ready to send messages to that contact
         setCurrentTarget(name);
+    }
+
+    function handlePreviewSearch(name, messageId) {
+        setCurrentTarget(name);
+        setTargetMessage(messageId);
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
@@ -270,7 +300,8 @@ export default function Homepage() {
         }
     }
 
-    const contactNames = getContacts(contactList.current);
+    const contactNames = getKeys(contactList.current);
+    const results = getKeys(searchResult);
 
     return (
         <div className={styles.container}>
@@ -287,24 +318,52 @@ export default function Homepage() {
                     setErrorMessage={setErrMessages}
                     onSubmit={onSubmitCreateGroup}
                 />
-                <SearchMessages />
+                <SearchMessages
+                    setSearchTerm={setSearchTerm}
+                    searchTerm={searchTerm}
+                    setResult={setSearchResult}
+                    result={searchResult}
+                    messages={chatMessages}
+                />
                 {contactNames.length === 0 ? <div>No users yet...</div> : null}
-                {contactNames.map((contact) => {
-                    const lastMessageId = chatMessages[contact].last;
-                    const message = chatMessages[contact].messages[lastMessageId];
-                    return (
-                        <PreviewMessages
-                            key={contact}
-                            id={contact}
-                            contact={contactList.current[contact].name}
-                            username={publicUsername}
-                            message={message}
-                            readStatus={chatUtils.checkRead(contactList.current[contact], message)}
-                            target={currentTarget}
-                            handleOnClick={previewOnClick}
-                        />
-                    );
-                })}
+                {searchTerm
+                    ? results.map((messageId) => {
+                          const message = searchResult[messageId];
+                          const context = message.context;
+                          return (
+                              <PreviewMessages
+                                  key={messageId}
+                                  id={context}
+                                  contact={contactList.current[context].name}
+                                  username={publicUsername}
+                                  message={message}
+                                  readStatus={chatUtils.checkRead(
+                                      contactList.current[context],
+                                      message,
+                                  )}
+                                  handleOnClick={handlePreviewSearch}
+                              />
+                          );
+                      })
+                    : contactNames.map((contact) => {
+                          const lastMessageId = chatMessages[contact].last;
+                          const message = chatMessages[contact].messages[lastMessageId];
+                          return (
+                              <PreviewMessages
+                                  key={contact}
+                                  id={contact}
+                                  contact={contactList.current[contact].name}
+                                  username={publicUsername}
+                                  message={message}
+                                  readStatus={chatUtils.checkRead(
+                                      contactList.current[contact],
+                                      message,
+                                  )}
+                                  target={currentTarget}
+                                  handleOnClick={previewOnClick}
+                              />
+                          );
+                      })}
             </div>
             <div
                 className={styles.resizeHandler}
@@ -339,7 +398,7 @@ export default function Homepage() {
     );
 }
 
-function getContacts(obj) {
+function getKeys(obj) {
     // the expected object should be as follows
     // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
     const arr = [];

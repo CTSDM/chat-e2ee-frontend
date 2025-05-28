@@ -58,7 +58,7 @@ describe("The component ", () => {
                 const messagesArr = Object.values(directMessages[contact].messages);
                 messagesArr.forEach((message) => {
                     expect(screen.getByText(message.content)).toBeInTheDocument();
-                    const dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
+                    const dateFormatted = dataManipulation.getHoursMinutes(message.createdAt);
                     expect(screen.getByText(dateFormatted)).toBeInTheDocument();
                 });
                 unmount();

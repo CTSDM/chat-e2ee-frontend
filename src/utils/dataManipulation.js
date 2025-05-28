@@ -50,12 +50,36 @@ function getHrefsInfo(obj, isLogged) {
     return entries;
 }
 
-function getDateFormatted(date) {
+function getHoursMinutes(date) {
     let minutes = date.getMinutes();
     let hours = date.getHours();
     if (minutes <= 9) minutes = "0" + minutes;
     if (hours <= 9) hours = "0" + hours;
     return hours + ":" + minutes;
+}
+
+function getDateFormatted(date) {
+    const currentTime = Date.now();
+    const time = date.getTime();
+    if (Math.abs(currentTime - time) <= 1000 * 60 * 60 * 24) {
+        // at most 1 day of difference
+        return getHoursMinutes(date);
+    } else if (currentTime - time <= 1000 * 60 * 60 * 24 * 7) {
+        // between 1 and 7 days of difference
+        const weekday = [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+        ];
+        const dayIndex = date.getDay(); // 0 is Sunday
+        return weekday[dayIndex];
+    } else {
+        return date.toLocalteDateString();
+    }
 }
 
 function hexStringToUint8Array(hex) {
@@ -111,7 +135,7 @@ export default {
     ArrBufferToJSON,
     UintArrToJson,
     getHrefsInfo,
-    getDateFormatted,
+    getHoursMinutes,
     objArrToUint8Arr,
     objToArrBuffer,
     hexStringToUint8Array,
@@ -120,4 +144,5 @@ export default {
     Uint8ArrayToJSON,
     Uint8ArrayToStr,
     xorArray,
+    getDateFormatted,
 };

@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import FormSimple from "./FormSimple.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
-import styles from "./GroupChatRoom.module.css";
+import styles from "./ChatRoom.module.css";
 import { useEffect, useRef } from "react";
 import { chatUtils } from "../utils/utils.js";
 

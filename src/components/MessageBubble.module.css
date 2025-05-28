@@ -66,9 +66,13 @@
   z-index: 1;
 }
 
-.container {
+.subContainer {
+  max-width: 900px;
+  min-width: 300px;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
 }
 
 .panson {

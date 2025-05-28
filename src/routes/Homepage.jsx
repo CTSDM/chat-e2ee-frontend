@@ -36,6 +36,7 @@ export default function Homepage() {
     const isResize = useRef(false);
     const [currentTarget, setCurrentTarget] = useState(null);
     const [targetMessage, setTargetMessage] = useState("");
+    const timeoutHandler = useRef({});
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -77,23 +78,39 @@ export default function Homepage() {
 
     // scroll into view the message that comes back from the result
     useEffect(() => {
-        let removalClassHandler;
         let divContainer;
+        let bubbleHack;
         if (targetMessage) {
             const t = 1000;
             const divMessage = document.getElementById(targetMessage);
-            divContainer = divMessage.parentElement;
+            divContainer = divMessage.parentElement.parentElement;
+            bubbleHack = divMessage.parentElement.childNodes[1].childNodes[0];
+            divContainer.classList.remove(styles.fade);
             divContainer.classList.add(styles.view);
+            // we also change the background color of the hack to shape the message bubble
+            bubbleHack.classList.add(styles.view);
+            bubbleHack.classList.remove(styles.fade);
             divContainer.scrollIntoView();
-            removalClassHandler = setTimeout(() => {
+            // we check if there is another timeout handler, we clear it first
+            if (timeoutHandler.current[targetMessage]) {
+                clearTimeout(timeoutHandler.current[targetMessage]);
+                delete timeoutHandler.current[targetMessage];
+            }
+            timeoutHandler.current[targetMessage] = setTimeout(() => {
+                divContainer.classList.add(styles.fade);
                 divContainer.classList.remove(styles.view);
+                bubbleHack.classList.add(styles.fade);
+                bubbleHack.classList.remove(styles.view);
             }, t);
         }
         return () => {
-            if (divContainer) {
-                divContainer.classList.remove(styles.view);
+            if (!targetMessage) {
+                const keys = Object.keys(timeoutHandler.current);
+                keys.forEach((key) => {
+                    clearTimeout(timeoutHandler.current[key]);
+                });
+                timeoutHandler.current = {};
             }
-            if (removalClassHandler && !targetMessage) clearTimeout(removalClassHandler);
         };
     }, [targetMessage, setTargetMessage]);
 
@@ -166,7 +183,14 @@ export default function Homepage() {
 
     function handlePreviewSearch(name, messageId) {
         setCurrentTarget(name);
-        setTargetMessage(messageId);
+        setTargetMessage((previousId) => {
+            if (previousId === messageId) {
+                setTimeout(() => setTargetMessage(messageId), 0);
+                return "";
+            } else {
+                return messageId;
+            }
+        });
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {

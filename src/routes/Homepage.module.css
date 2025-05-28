@@ -12,7 +12,6 @@
 }
 
 .rightSide>div {
-  max-width: 700px;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -34,6 +33,10 @@
 }
 
 .view {
-  background-color: red;
-  transition: background-color 1s ease;
+  background-color: rgba(80, 80, 80) !important;
+}
+
+.fade {
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.25s ease;
 }

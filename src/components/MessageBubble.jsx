@@ -7,7 +7,7 @@ import styles from "./MessageBubble.module.css";
 
 export default function MessageBubble({ id, content, author, username, date, isRead, showAuthor }) {
     const messageRef = useRef(null);
-    const dateFormatted = dataManipulation.getDateFormatted(date);
+    const dateFormatted = dataManipulation.getHoursMinutes(date);
 
     const isAuthSender = username === author;
 
@@ -26,27 +26,33 @@ export default function MessageBubble({ id, content, author, username, date, isR
     }
 
     return (
-        <div className={styles.container} ref={messageRef}>
-            <div id={id} data-testid={id} className={classMessage}>
-                {showAuthor && !isAuthSender ? <div className={styles.author}>{author}</div> : null}
-                <div className={styles.content}>{content}</div>
-                <div className={styles.info}>
-                    <div className={styles.time}>{dateFormatted}</div>
-                    {isAuthSender ? <img src={readStatusObj.src} alt={readStatusObj.alt} /> : null}
+        <div ref={messageRef}>
+            <div className={styles.subContainer}>
+                <div id={id} data-testid={id} className={classMessage}>
+                    {showAuthor && !isAuthSender ? (
+                        <div className={styles.author}>{author}</div>
+                    ) : null}
+                    <div className={styles.content}>{content}</div>
+                    <div className={styles.info}>
+                        <div className={styles.time}>{dateFormatted}</div>
+                        {isAuthSender ? (
+                            <img src={readStatusObj.src} alt={readStatusObj.alt} />
+                        ) : null}
+                    </div>
                 </div>
+                {isAuthSender ? null : (
+                    <div className={`${styles.panson} ${styles.receiver}`}>
+                        <div className={`${styles.invBlock} ${styles.receiver}`}></div>
+                        <div className={`${styles.block} ${styles.receiver}`}></div>
+                    </div>
+                )}
+                {isAuthSender ? (
+                    <div className={`${styles.panson} ${styles.sender}`}>
+                        <div className={`${styles.invBlock} ${styles.sender}`}></div>
+                        <div className={`${styles.block} ${styles.sender}`}></div>
+                    </div>
+                ) : null}
             </div>
-            {isAuthSender ? null : (
-                <div className={`${styles.panson} ${styles.receiver}`}>
-                    <div className={`${styles.invBlock} ${styles.receiver}`}></div>
-                    <div className={`${styles.block} ${styles.receiver}`}></div>
-                </div>
-            )}
-            {isAuthSender ? (
-                <div className={`${styles.panson} ${styles.sender}`}>
-                    <div className={`${styles.invBlock} ${styles.sender}`}></div>
-                    <div className={`${styles.block} ${styles.sender}`}></div>
-                </div>
-            ) : null}
         </div>
     );
 }

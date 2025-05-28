@@ -78,7 +78,7 @@ function getDateFormatted(date) {
         const dayIndex = date.getDay(); // 0 is Sunday
         return weekday[dayIndex];
     } else {
-        return date.toLocalteDateString();
+        return date.toLocaleDateString();
     }
 }
 

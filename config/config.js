@@ -9,6 +9,7 @@ const env = {
             type: "text",
             name: "message",
             placeholder: "Message",
+            limit: 4096,
         },
         decrypt: [
             {

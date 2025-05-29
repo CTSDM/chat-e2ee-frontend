@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import FormSimple from "./FormSimple.jsx";
+import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
@@ -11,6 +11,7 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
     const messagesLength = useRef(0);
     const refForm = useRef(null);
     const messagesArr = chatUtils.getCurrentMessages(messages, target.toLowerCase());
+    const refScrollbar = useRef(null);
 
     useEffect(() => {
         if (messagesArr) {
@@ -33,7 +34,7 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         return <div></div>;
     }
 
-    function handleSubmit(e) {
+    function handleSubmitTextArea(e) {
         e.preventDefault();
         const form = e.currentTarget;
         const formData = new FormData(form);
@@ -44,29 +45,41 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         }
     }
 
+    function onMouseOver() {
+        refScrollbar.current.style["background-color"] = "blue";
+    }
+
+    function onMouseOut() {
+        refScrollbar.current.style["background-color"] = "";
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.contact}>{target}</div>
-            <div className={styles.messagesContainer}>
-                {messagesArr.map((message) => (
-                    <MessageBubble
-                        key={message.id}
-                        id={message.id}
-                        content={message.content}
-                        author={message.author}
-                        date={message.createdAt}
-                        isRead={message.read}
-                        username={username}
-                        showAuthor={false}
-                    />
-                ))}
+            <div className={styles.subContainer} onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
+                <div className={styles.messagesContainer}>
+                    {messagesArr.map((message) => (
+                        <MessageBubble
+                            key={message.id}
+                            id={message.id}
+                            content={message.content}
+                            author={message.author}
+                            date={message.createdAt}
+                            isRead={message.read}
+                            username={username}
+                            showAuthor={false}
+                        />
+                    ))}
+                </div>
+                <div className={styles.scrollbar} ref={refScrollbar}></div>
             </div>
             <div className={styles.form}>
-                <FormSimple
+                <TextArea
                     innerRef={refForm}
                     buttonText={"Send"}
                     input={input}
-                    handleSubmit={handleSubmit}
+                    handleSubmit={handleSubmitTextArea}
+                    limit={env.inputs.message.limit}
                 />
             </div>
         </div>

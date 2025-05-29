@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import FormSimple from "./FormSimple.jsx";
+import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import styles from "./ChatRoom.module.css";
@@ -67,11 +67,12 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, nam
                 })}
             </div>
             <div className={styles.form}>
-                <FormSimple
+                <TextArea
                     innerRef={refForm}
                     buttonText={"Send"}
                     input={input}
                     handleSubmit={handleSubmit}
+                    limit={env.inputs.message.limit}
                 />
             </div>
         </div>

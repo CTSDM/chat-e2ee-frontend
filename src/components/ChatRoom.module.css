@@ -5,8 +5,13 @@
   overflow: hidden;
 }
 
-.form {
+.container .form {
   align-self: self-end;
+  max-width: 900px;
+  min-width: 300px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .messagesContainer {
@@ -15,7 +20,33 @@
   flex-direction: column;
   gap: 5px;
   padding: 5px 0px;
+}
+
+.subContainer {
+  display: grid;
+  grid-template-columns: 1fr auto;
   overflow-y: auto;
+  position: relative;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.subContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.subContainer {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.scrollbar {
+  position: relative;
+  background-color: red;
+  min-width: 10px;
+  min-height: 100px;
+  transition: background-color 1s ease-in-out;
 }
 
 .contact {

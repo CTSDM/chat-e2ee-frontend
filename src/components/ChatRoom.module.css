@@ -20,33 +20,40 @@
   flex-direction: column;
   gap: 5px;
   padding: 5px 0px;
+  overflow-y: auto;
 }
 
 .subContainer {
   display: grid;
   grid-template-columns: 1fr auto;
-  overflow-y: auto;
   position: relative;
+  overflow: hidden;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-.subContainer::-webkit-scrollbar {
+.messagesContainer::-webkit-scrollbar {
   display: none;
 }
 
-.subContainer {
+.messagesContainer {
   -ms-overflow-style: none;
   /* IE and Edge */
-  scrollbar-width: none;
+  scrollbar-width: 10px;
   /* Firefox */
 }
 
 .scrollbar {
-  position: relative;
-  background-color: red;
   min-width: 10px;
-  min-height: 100px;
-  transition: background-color 1s ease-in-out;
+  background-color: rgba(0, 0, 0, 0);
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  user-select: none;
+  transition: background-color 0.25s ease-in-out;
+}
+
+.active {
+  background-color: rgb(100, 100, 100);
 }
 
 .contact {

@@ -3,7 +3,7 @@ import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
 import MessageBubble from "./MessageBubble.jsx";
 import { useEffect, useRef } from "react";
-import { chatUtils } from "../utils/utils.js";
+import { chatUtils, domUtils } from "../utils/utils.js";
 import styles from "./ChatRoom.module.css";
 
 function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
@@ -17,6 +17,11 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
     const refAuxMsgContainer = useRef({
         active: false,
         initialPosition: { scrollTop: null, clickY: null },
+    });
+    const refScrollbarContainer = useRef({
+        active: false,
+        handlerTI: null,
+        coordY: null,
     });
 
     useEffect(() => {
@@ -32,16 +37,19 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
 
     useEffect(() => {
         window.addEventListener("mouseup", disableState);
-        window.addEventListener("mousemove", updateMsgContainerPosition);
+        window.addEventListener("mousemove", updatePositions);
         function disableState() {
             refAuxMsgContainer.current.active = false;
+            refScrollbarContainer.current.active = false;
+            clearInterval(refScrollbarContainer.current.handlerTI);
+            refScrollbarContainer.current.handlerTI = null;
         }
-        function updateMsgContainerPosition(e) {
+        function updatePositions(e) {
             if (refAuxMsgContainer.current.active === true) {
                 // we calculate the new scrollTop according to the saved coordinates
                 // we have to translate these coordinates to the dimensions of the scrollbar
                 // or something similar I think like
-                const diff = (e.clientY - refAuxMsgContainer.current.initialPosition.clickY) * 3;
+                const diff = (e.clientY - refAuxMsgContainer.current.initialPosition.clickY) * 5;
                 const newScroll = refAuxMsgContainer.current.initialPosition.scrollTop + diff;
                 const maxScroll =
                     refMessagesContainer.current.scrollHeight -
@@ -51,10 +59,13 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
                     maxScroll,
                 );
             }
+            if (refScrollbarContainer.current.active === true) {
+                refScrollbarContainer.current.coordY = e.clientY;
+            }
         }
         return () => {
             window.removeEventListener("mouseup", disableState);
-            window.removeEventListener("mousemove", updateMsgContainerPosition);
+            window.removeEventListener("mousemove", updatePositions);
         };
     }, []);
 
@@ -81,21 +92,26 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
 
     function onMouseOver() {
         // we obtain the height of the message container
-        const [newHeight, bottomMargin] = getSizePositionScrollbar(
+        const [newHeight, bottom] = getSizePositionScrollbar(
             refSubcontainer.current,
             refMessagesContainer.current,
         );
         if (newHeight === 0) {
             refScrollbar.current.style["opacity"] = "0";
-            refScrollbar.current.style["margin-bottom"] = "0px";
-            refScrollbar.current.classList.remove(`${styles.active}`);
+            refScrollbar.current.style["transform"] = "translateY(0px)";
         } else {
             // we get the size and where we should place the scroll bar;
             refScrollbar.current.style["min-height"] = `${newHeight}px`;
             refScrollbar.current.style["opacity"] = "1";
-            refScrollbar.current.style["bottom"] = `${bottomMargin}%`;
-            refScrollbar.current.classList.add(`${styles.active}`);
+            refScrollbar.current.style["transform"] = `translateY(${bottom}px)`;
         }
+    }
+
+    function onWheelScrollbar(e) {
+        // we force a scroll on the message container
+        // and then call onMouseOver to update the scrollbar position
+        refMessagesContainer.current.scrollBy({ top: e.deltaY });
+        onMouseOver();
     }
 
     function onMouseOut() {
@@ -109,6 +125,37 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
                 refMessagesContainer.current.scrollTop;
             refAuxMsgContainer.current.initialPosition.clickY = e.clientY;
             refAuxMsgContainer.current.active = true;
+        }
+    }
+
+    function onMouseDownScrollbarContainer(e) {
+        // only for desktop environments, not for phones or tablets
+        // if we click the scrollbar we do nothing
+        // otherwise we move up/down the scrollbar a relative percentage of the container.
+        // we set a timeout to keep moving the scrollbar until it meets the cursor
+        if (e.target !== refScrollbar.current) {
+            const messagesContainer = refMessagesContainer.current;
+            const coordY = e.clientY;
+            const boxContainer = refScrollbar.current.getBoundingClientRect();
+            const relativePosition = domUtils.getRelativePosition(coordY, boxContainer);
+            const previousScrollTop = messagesContainer.scrollTop;
+            const step = messagesContainer.scrollHeight / 6;
+            if (relativePosition === "in-between") {
+                throw new Error("invalid condition reached");
+            } else {
+                const direction = relativePosition === "bottom" ? 1 : -1;
+                messagesContainer.scrollTop = previousScrollTop + step * direction;
+                refScrollbarContainer.current.active = true;
+                refScrollbarContainer.current.coordY = e.clientY;
+                refScrollbarContainer.current.handlerTI = domUtils.setMovementScrollBar(
+                    refScrollbarContainer.current,
+                    refScrollbar.current,
+                    refMessagesContainer.current,
+                    relativePosition,
+                    direction,
+                    step,
+                );
+            }
         }
     }
 
@@ -126,24 +173,34 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
                     ref={refMessagesContainer}
                     onScroll={onMouseOver}
                 >
-                    {messagesArr.map((message) => (
-                        <MessageBubble
-                            key={message.id}
-                            id={message.id}
-                            content={message.content}
-                            author={message.author}
-                            date={message.createdAt}
-                            isRead={message.read}
-                            username={username}
-                            showAuthor={false}
-                        />
-                    ))}
+                    {messagesArr.map((message, index) => {
+                        const messagesArrLen = messagesArr.length;
+                        return (
+                            <MessageBubble
+                                key={message.id}
+                                id={message.id}
+                                content={message.content}
+                                author={message.author}
+                                date={message.createdAt}
+                                isRead={message.read}
+                                username={username}
+                                showAuthor={false}
+                                last={index === messagesArrLen - 1 ? true : false}
+                            />
+                        );
+                    })}
                 </div>
                 <div
-                    className={styles.scrollbar}
-                    ref={refScrollbar}
-                    onMouseDown={onMouseDown}
-                ></div>
+                    className={styles.scrollbarContainer}
+                    onMouseDown={onMouseDownScrollbarContainer}
+                    onWheel={onWheelScrollbar}
+                >
+                    <div
+                        className={styles.scrollbar}
+                        ref={refScrollbar}
+                        onMouseDown={onMouseDown}
+                    ></div>
+                </div>
             </div>
             <div className={styles.form}>
                 <TextArea
@@ -162,19 +219,18 @@ function getSizePositionScrollbar(container, messageContainer) {
     const messagesContainerHeight = messageContainer.scrollHeight;
     const visibleHeight = container.clientHeight;
     const ratio = visibleHeight / messagesContainerHeight;
-    let newHeight, offsetBottom; // ofsetBottom in percentage
+    let newHeight, offsetBottom; // ofsetBottom in px
     if (ratio >= 1) {
         newHeight = 0;
         offsetBottom = 0;
     } else {
-        newHeight = ratio * visibleHeight;
+        newHeight = ratio * visibleHeight - 10; // slightly smaller to not touch top and bottom inside the container
         const verticalOffset = messageContainer.scrollTop;
         const ratio2 =
             (messagesContainerHeight - verticalOffset - visibleHeight) / messagesContainerHeight;
-        if (ratio2 >= 1) offsetBottom = 100;
+        if (ratio2 >= 1) offsetBottom = -newHeight;
         else {
-            // offsetBottom = 100 * (1 - ratio2);
-            offsetBottom = ratio2 * 100;
+            offsetBottom = (1 - ratio2) * visibleHeight - newHeight;
         }
     }
     return [newHeight, offsetBottom];

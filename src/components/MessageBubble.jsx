@@ -5,7 +5,16 @@ import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 import styles from "./MessageBubble.module.css";
 
-export default function MessageBubble({ id, content, author, username, date, isRead, showAuthor }) {
+export default function MessageBubble({
+    id,
+    content,
+    author,
+    username,
+    date,
+    isRead,
+    showAuthor,
+    last,
+}) {
     const messageRef = useRef(null);
     const dateFormatted = dataManipulation.getHoursMinutes(date);
 
@@ -15,8 +24,10 @@ export default function MessageBubble({ id, content, author, username, date, isR
     const classMessage = `${styles.bubble} ${styles[classApplied]}`;
 
     useEffect(() => {
-        messageRef.current.scrollIntoView();
-    }, []);
+        if (last) {
+            messageRef.current.scrollIntoView();
+        }
+    }, [last]);
 
     const readStatusObj = { src: notReadImg, alt: "not yet read" };
 
@@ -65,4 +76,5 @@ MessageBubble.propTypes = {
     isRead: PropTypes.bool.isRequired,
     content: PropTypes.string.isRequired,
     showAuthor: PropTypes.bool.isRequired,
+    last: PropTypes.bool.isRequired,
 };

@@ -1,16 +1,16 @@
 import PropTypes from "prop-types";
 import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
-import MessageBubble from "./MessageBubble.jsx";
 import { useEffect, useRef } from "react";
 import { chatUtils, domUtils } from "../utils/utils.js";
-import styles from "./ChatRoom.module.css";
+import styles from "./Chat.module.css";
+import PrivateRoom from "./PrivateRoom.jsx";
+import GroupRoom from "./GroupRoom.jsx";
 
-function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }) {
+function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo, id }) {
     const input = env.inputs.message;
     const messagesLength = useRef(0);
     const refForm = useRef(null);
-    const messagesArr = chatUtils.getCurrentMessages(messages, target.toLowerCase());
     const refScrollbar = useRef(null);
     const refMessagesContainer = useRef(null);
     const refSubcontainer = useRef(null);
@@ -23,17 +23,33 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         handlerTI: null,
         coordY: null,
     });
+    const isGroup = id.length === 36;
+
+    let messagesArr;
+    if (isGroup) {
+        messagesArr = chatUtils.getCurrentMessages(messages, id);
+    } else {
+        messagesArr = chatUtils.getCurrentMessages(messages, contactInfo.name.toLowerCase());
+    }
 
     useEffect(() => {
         if (messagesArr) {
-            const len = messagesArr.length;
-            if (messagesLength.current !== len) {
-                messagesLength.current = len;
-                handleOnRender(messagesArr);
+            if (isGroup) {
+                const len = messagesArr.length;
+                if (messagesLength.current !== len) {
+                    messagesLength.current = len;
+                    handleOnRender(messagesArr);
+                }
+            } else {
+                const len = messagesArr.length;
+                if (messagesLength.current !== len) {
+                    messagesLength.current = len;
+                    handleOnRender(messagesArr, id);
+                }
             }
         }
         // we focus the input
-    }, [handleOnRender, messagesArr]);
+    }, [handleOnRender, id]);
 
     useEffect(() => {
         window.addEventListener("mouseup", disableState);
@@ -74,10 +90,6 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
             refForm.current.focus();
         }
     }, []);
-
-    if (!messagesArr) {
-        return <div></div>;
-    }
 
     function handleSubmitTextArea(e) {
         e.preventDefault();
@@ -159,37 +171,41 @@ function ChatRoom({ messages, handleOnSubmit, handleOnRender, username, target }
         }
     }
 
+    if (!messagesArr) {
+        return <div></div>;
+    }
+
     return (
         <div className={styles.container}>
-            <div className={styles.contact}>{target}</div>
+            {id.length === 36 ? (
+                <div className={styles.contact}>
+                    {contactInfo.name} / {`${contactInfo.members.length} members`}
+                </div>
+            ) : (
+                <div className={styles.contact}>{contactInfo.name}</div>
+            )}
             <div
                 className={styles.subContainer}
                 onMouseOver={onMouseOver}
                 onMouseOut={onMouseOut}
                 ref={refSubcontainer}
             >
-                <div
-                    className={styles.messagesContainer}
-                    ref={refMessagesContainer}
-                    onScroll={onMouseOver}
-                >
-                    {messagesArr.map((message, index) => {
-                        const messagesArrLen = messagesArr.length;
-                        return (
-                            <MessageBubble
-                                key={message.id}
-                                id={message.id}
-                                content={message.content}
-                                author={message.author}
-                                date={message.createdAt}
-                                isRead={message.read}
-                                username={username}
-                                showAuthor={false}
-                                last={index === messagesArrLen - 1 ? true : false}
-                            />
-                        );
-                    })}
-                </div>
+                {id.length === 36 ? (
+                    <GroupRoom
+                        messagesArr={messagesArr}
+                        username={username}
+                        members={contactInfo.members}
+                        refContainer={refMessagesContainer}
+                        onScroll={onMouseOver}
+                    />
+                ) : (
+                    <PrivateRoom
+                        messagesArr={messagesArr}
+                        username={username}
+                        refContainer={refMessagesContainer}
+                        onScroll={onMouseOver}
+                    />
+                )}
                 <div
                     className={styles.scrollbarContainer}
                     onMouseDown={onMouseDownScrollbarContainer}
@@ -236,8 +252,9 @@ function getSizePositionScrollbar(container, messageContainer) {
     return [newHeight, offsetBottom];
 }
 
-ChatRoom.propTypes = {
-    target: PropTypes.string,
+Chat.propTypes = {
+    contactInfo: PropTypes.object.isRequired,
+    id: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,
     messages: PropTypes.oneOfType([
         PropTypes.objectOf(
@@ -255,4 +272,4 @@ ChatRoom.propTypes = {
     handleOnRender: PropTypes.func.isRequired,
 };
 
-export default ChatRoom;
+export default Chat;

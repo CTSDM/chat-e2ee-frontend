@@ -1,0 +1,20 @@
+.messagesContainer {
+  background-color: #0E1621;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 0px;
+  overflow-y: auto;
+}
+
+.messagesContainer::-webkit-scrollbar {
+  display: none;
+  padding: 0px 15px;
+}
+
+.messagesContainer {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: 10px;
+  /* Firefox */
+}

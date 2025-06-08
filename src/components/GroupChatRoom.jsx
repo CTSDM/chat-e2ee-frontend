@@ -1,10 +1,10 @@
 import PropTypes from "prop-types";
 import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
-import MessageBubble from "./MessageBubble.jsx";
-import styles from "./ChatRoom.module.css";
+import styles from "./Chat.module.css";
 import { useEffect, useRef } from "react";
 import { chatUtils } from "../utils/utils.js";
+import GroupRoom from "./GroupRoom.jsx";
 
 function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, name, id, members }) {
     const input = env.inputs.message;
@@ -49,23 +49,7 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, nam
             <div className={styles.contact}>
                 {name} / {`${members.length} members`}
             </div>
-            <div className={styles.messagesContainer}>
-                {messagesArr.map((message) => {
-                    const isRead = message.read.length === members.length - 1;
-                    return (
-                        <MessageBubble
-                            id={message.id}
-                            key={message.id}
-                            content={message.content}
-                            author={message.author}
-                            date={message.createdAt}
-                            isRead={isRead}
-                            username={username}
-                            showAuthor={true}
-                        />
-                    );
-                })}
-            </div>
+            <GroupRoom messagesArr={messagesArr} members={members} username={username} />
             <div className={styles.form}>
                 <TextArea
                     innerRef={refForm}
@@ -80,7 +64,7 @@ function GroupChatRoom({ messages, handleOnSubmit, handleOnRender, username, nam
 }
 
 GroupChatRoom.propTypes = {
-    members: PropTypes.array,
+    members: PropTypes.array.isRequired,
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     username: PropTypes.string.isRequired,

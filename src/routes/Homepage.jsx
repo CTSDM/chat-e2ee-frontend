@@ -1,8 +1,7 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewMessages from "../components/PreviewMessages.jsx";
-import ChatRoom from "../components/ChatRoom.jsx";
-import GroupChatRoom from "../components/GroupChatRoom.jsx";
+import Chat from "../components/Chat.jsx";
 import ButtonDialog from "../components/ButtonDialog.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";
 import CreateGroup from "../components/CreateGroup.jsx";
@@ -395,25 +394,14 @@ export default function Homepage() {
             ></div>
             <div className={styles.rightSide}>
                 {currentTarget ? (
-                    contactList.current[currentTarget].type === "group" ? (
-                        <GroupChatRoom
-                            id={currentTarget}
-                            name={currentTarget && contactList.current[currentTarget].name}
-                            members={currentTarget && contactList.current[currentTarget].members}
-                            messages={chatMessages}
-                            handleOnSubmit={handleSubmitMessage}
-                            handleOnRender={readMessages}
-                            username={publicUsername}
-                        />
-                    ) : (
-                        <ChatRoom
-                            target={currentTarget && contactList.current[currentTarget].name}
-                            messages={chatMessages}
-                            handleOnSubmit={handleSubmitMessage}
-                            handleOnRender={readMessages}
-                            username={publicUsername}
-                        />
-                    )
+                    <Chat
+                        contactInfo={contactList.current[currentTarget]}
+                        messages={chatMessages}
+                        handleOnSubmit={handleSubmitMessage}
+                        handleOnRender={readMessages}
+                        username={publicUsername}
+                        id={currentTarget} // If the string is uuidv4 then we have a group
+                    />
                 ) : (
                     <div></div>
                 )}

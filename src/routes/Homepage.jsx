@@ -62,7 +62,7 @@ export default function Homepage() {
     useEffect(() => {
         const timer = setTimeout(() => setErrMessages(null), 2000);
         return () => clearTimeout(timer);
-    }, [setErrMessages]);
+    }, [errMessages]);
 
     useEffect(() => {
         startWebSocket();

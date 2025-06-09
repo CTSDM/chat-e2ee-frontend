@@ -1,11 +1,14 @@
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
-import { dataManipulationUtils as dataManipulation } from "../utils/utils.js";
-import { cryptoUtils } from "../utils/utils.js";
+import {
+    dataManipulationUtils as dataManipulation,
+    cryptoUtils,
+    chatUtils,
+} from "../utils/utils.js";
 
 let socket = null;
 
-function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars) {
+function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars, setUpdate) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
@@ -59,14 +62,9 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 indexMessage = messageIndexes[context];
                 ++messageIndexes[context];
             }
-            // On startup, to avoid that the acknowledge message gets processed before the actual content of the message does
-            // we create a pair promise/resolver to manage this
             if (contacts.current[context]) {
-                if (codeMessage === 1) {
-                    contacts.current = {
-                        [context]: contacts.current[context],
-                        ...contacts.current,
-                    };
+                if (codeMessage === 1 || codeMessage === 3) {
+                    setUpdate(true);
                 }
             } else {
                 // the current context is not in the contact list
@@ -107,7 +105,8 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 const { promise, resolver } = promiseHelper();
                 cryptoPromisesHandler[msgId] = { promise, resolver };
                 const readStatus = !!dataManipulation.getNumFromBuffer(data.slice(100, 101)); // boolean value
-                const messageDate = dataManipulation.getDateFromBuffer(data.slice(101, 117));
+                const timeBuff = data.slice(101, 117);
+                const messageDate = dataManipulation.getDateFromBuffer(timeBuff);
                 const ivBuffer = data.slice(117, 129);
                 cryptoPromisesHandler[msgId].decryptPromise = cryptoUtils.getDecryptedMessage(
                     sharedKey,
@@ -156,6 +155,9 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         messageState[msgId] = newChatMessages[context].messages[msgId];
                     return newChatMessages;
                 });
+                // we attach the date of the last message to the contact object
+                const timeLastMessage = dataManipulation.getTimeFromBuffer(timeBuff);
+                chatUtils.updateContactLastMessage(contacts.current[context], timeLastMessage);
                 if (cryptoPromisesHandler[msgId] && cryptoPromisesHandler[msgId].promise) {
                     cryptoPromisesHandler[msgId].resolver();
                 }

@@ -323,8 +323,9 @@ export default function Homepage() {
         }
     }
 
-    const contactNames = getKeys(contactList.current);
+    // these results are recalculated for every rerender of the homepage...
     const results = getKeys(searchResult);
+    const contactsOrdered = getContactsOrdered(contactList.current);
 
     return (
         <div className={styles.container}>
@@ -348,7 +349,7 @@ export default function Homepage() {
                     result={searchResult}
                     messages={chatMessages}
                 />
-                {contactNames.length === 0 ? <div>No users yet...</div> : null}
+                {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
                 {searchTerm
                     ? results.map((messageId) => {
                           const message = searchResult[messageId];
@@ -368,7 +369,7 @@ export default function Homepage() {
                               />
                           );
                       })
-                    : contactNames.map((contact) => {
+                    : contactsOrdered.map((contact) => {
                           const lastMessageId = chatMessages[contact].last;
                           const message = chatMessages[contact].messages[lastMessageId];
                           return (
@@ -461,4 +462,19 @@ async function addMemberToGroup(usersArr, groupId, keyRaw, symmetricKey, contact
         const data = dataManipulation.groupBuffers([usernameArr, keyUserData]);
         ws.sendMessage(4, groupId, data);
     }
+}
+
+function getContactsOrdered(contactList) {
+    const contactsId = getKeys(contactList);
+    contactsId.sort((a, b) => {
+        const timeA = contactList[a].lastTime;
+        const timeB = contactList[b].lastTime;
+        if (timeA === undefined) {
+            return 1;
+        } else if (timeB === undefined) {
+            return -1;
+        }
+        return timeB - timeA;
+    });
+    return contactsId;
 }

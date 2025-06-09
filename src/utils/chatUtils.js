@@ -42,4 +42,13 @@ function checkRead(contextObj, message) {
     }
 }
 
-export default { getCurrentMessages, orderChatRoom, checkRead };
+function updateContactLastMessage(contactObj, time) {
+    // only update if the new time is newer than the curren stored time
+    if (contactObj.lastTime === undefined) {
+        contactObj.lastTime = time;
+    } else if (contactObj.lastTime < time) {
+        contactObj.lastTime = time;
+    }
+}
+
+export default { getCurrentMessages, orderChatRoom, checkRead, updateContactLastMessage };

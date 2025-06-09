@@ -121,6 +121,11 @@ function groupBuffers(buffArr) {
     return new Uint8Array(arr).buffer;
 }
 
+function getTimeFromBuffer(buff) {
+    const timeInt = +arrBufferToString(buff);
+    return timeInt;
+}
+
 function getDateFromBuffer(buff) {
     const dateStr = arrBufferToString(buff);
     return new Date(parseInt(dateStr));
@@ -145,4 +150,5 @@ export default {
     Uint8ArrayToStr,
     xorArray,
     getDateFormatted,
+    getTimeFromBuffer,
 };

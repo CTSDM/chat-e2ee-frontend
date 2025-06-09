@@ -14,15 +14,6 @@
   margin-right: auto;
 }
 
-.messagesContainer {
-  background-color: #0E1621;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 5px 0px;
-  overflow-y: auto;
-}
-
 .subContainer {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -30,26 +21,16 @@
   position: relative;
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
-.messagesContainer::-webkit-scrollbar {
-  display: none;
-  padding: 0px 15px;
-}
-
-.messagesContainer {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: 10px;
-  /* Firefox */
-}
-
 .scrollbar {
   min-width: 10px;
   background-color: rgb(100, 100, 100);
   position: absolute;
   user-select: none;
-  transition: opacity 0.15s ease-in-out, transform 0.05s linear;
   border-radius: 6px;
+}
+
+.scrollbar-dynamics {
+  transition: opacity 0.15s ease-in-out, transform 5s linear;
 }
 
 .scrollbar:hover,

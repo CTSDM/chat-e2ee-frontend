@@ -18,7 +18,7 @@ function GroupRoom({ messagesArr, username, members, refContainer, onScroll }) {
                         isRead={isRead}
                         username={username}
                         showAuthor={true}
-                        last={index === messagesArrLen - 1 ? true : false}
+                        scrollToLast={index === messagesArrLen - 1 ? true : false}
                     />
                 );
             })}

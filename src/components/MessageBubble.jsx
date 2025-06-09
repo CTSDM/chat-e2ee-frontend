@@ -13,7 +13,7 @@ export default function MessageBubble({
     date,
     isRead,
     showAuthor,
-    last,
+    scrollToLast,
 }) {
     const messageRef = useRef(null);
     const dateFormatted = dataManipulation.getHoursMinutes(date);
@@ -24,10 +24,10 @@ export default function MessageBubble({
     const classMessage = `${styles.bubble} ${styles[classApplied]}`;
 
     useEffect(() => {
-        if (last) {
-            messageRef.current.scrollIntoView();
+        if (scrollToLast) {
+            messageRef.current.scrollIntoView({ behaviour: "instant" });
         }
-    }, [last]);
+    }, [scrollToLast]);
 
     const readStatusObj = { src: notReadImg, alt: "not yet read" };
 
@@ -76,5 +76,5 @@ MessageBubble.propTypes = {
     isRead: PropTypes.bool.isRequired,
     content: PropTypes.string.isRequired,
     showAuthor: PropTypes.bool.isRequired,
-    last: PropTypes.bool.isRequired,
+    scrollToLast: PropTypes.bool.isRequired,
 };

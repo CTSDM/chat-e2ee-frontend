@@ -17,7 +17,7 @@ function PrivateRoom({ messagesArr, username, refContainer, onScroll }) {
                         isRead={message.read}
                         username={username}
                         showAuthor={false}
-                        last={index === messagesArrLen - 1 ? true : false}
+                        scrollToLast={index === messagesArrLen - 1 ? true : false}
                     />
                 );
             })}

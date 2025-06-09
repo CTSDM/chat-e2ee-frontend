@@ -49,7 +49,6 @@ export default function TextArea({ input, handleSubmit, buttonText, innerRef, li
                     onChange={onChange}
                     className={styles.simple}
                     autoComplete="off"
-                    ref={innerRef}
                     maxLength={limit}
                     rows={1}
                     value={value}

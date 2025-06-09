@@ -48,8 +48,19 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
                 }
             }
         }
-        // we focus the input
     }, [handleOnRender, id]);
+
+    useEffect(() => {
+        // we put a blank state every time we change the room
+        refAuxMsgContainer.current = {
+            active: false,
+            initialPosition: { scrollTop: null, clickY: null },
+        };
+        refScrollbar.current.style["min-height"] = `0px`;
+        refScrollbar.current.style["opacity"] = "0";
+        refScrollbar.current.classList.remove("scrollbar-dynamics");
+        refScrollbar.current.style["transform"] = "translateY(0px)";
+    }, [id]);
 
     useEffect(() => {
         window.addEventListener("mouseup", disableState);
@@ -89,7 +100,7 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
         if (refForm.current) {
             refForm.current.focus();
         }
-    }, []);
+    }, [id]);
 
     function handleSubmitTextArea(e) {
         e.preventDefault();
@@ -109,10 +120,14 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
             refMessagesContainer.current,
         );
         if (newHeight === 0) {
+            //useful when removing messages or resizing the page
+            refScrollbar.current.classList.remove("scrollbar-transition");
             refScrollbar.current.style["opacity"] = "0";
             refScrollbar.current.style["transform"] = "translateY(0px)";
+            refScrollbar.current.style["min-height"] = `0px`;
         } else {
             // we get the size and where we should place the scroll bar;
+            refScrollbar.current.classList.add("scrollbar-dynamics");
             refScrollbar.current.style["min-height"] = `${newHeight}px`;
             refScrollbar.current.style["opacity"] = "1";
             refScrollbar.current.style["transform"] = `translateY(${bottom}px)`;

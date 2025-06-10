@@ -347,7 +347,7 @@ export default function Homepage() {
                     searchTerm={searchTerm}
                     setResult={setSearchResult}
                     result={searchResult}
-                    messages={chatMessages}
+                    chatList={chatMessages}
                 />
                 {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
                 {searchTerm

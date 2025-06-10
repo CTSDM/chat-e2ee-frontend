@@ -1,6 +1,7 @@
 .container {
   display: flex;
   padding: 5px;
+  position: relative;
 }
 
 .searchBar {
@@ -11,4 +12,17 @@
   padding-right: 3px;
   font-size: 1rem;
   background-color: #242F3D;
+  padding-right: 2rem;
+}
+
+.cancelButton {
+  background-color: rgba(0, 0, 0, 0);
+  padding: 5px;
+  border-radius: 0px;
+  position: absolute;
+  right: 10px;
+}
+
+.cancelButton:hover {
+  background-color: Black;
 }

@@ -38,13 +38,13 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
                 const len = messagesArr.length;
                 if (messagesLength.current !== len) {
                     messagesLength.current = len;
-                    handleOnRender(messagesArr);
+                    handleOnRender(messagesArr, id);
                 }
             } else {
                 const len = messagesArr.length;
                 if (messagesLength.current !== len) {
                     messagesLength.current = len;
-                    handleOnRender(messagesArr, id);
+                    handleOnRender(messagesArr);
                 }
             }
         }

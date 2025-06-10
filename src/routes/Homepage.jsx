@@ -349,45 +349,47 @@ export default function Homepage() {
                     result={searchResult}
                     chatList={chatMessages}
                 />
-                {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
-                {searchTerm
-                    ? results.map((messageId) => {
-                          const message = searchResult[messageId];
-                          const context = message.context;
-                          return (
-                              <PreviewMessages
-                                  key={messageId}
-                                  id={context}
-                                  contact={contactList.current[context].name}
-                                  username={publicUsername}
-                                  message={message}
-                                  readStatus={chatUtils.checkRead(
-                                      contactList.current[context],
-                                      message,
-                                  )}
-                                  handleOnClick={handlePreviewSearch}
-                              />
-                          );
-                      })
-                    : contactsOrdered.map((contact) => {
-                          const lastMessageId = chatMessages[contact].last;
-                          const message = chatMessages[contact].messages[lastMessageId];
-                          return (
-                              <PreviewMessages
-                                  key={contact}
-                                  id={contact}
-                                  contact={contactList.current[contact].name}
-                                  username={publicUsername}
-                                  message={message}
-                                  readStatus={chatUtils.checkRead(
-                                      contactList.current[contact],
-                                      message,
-                                  )}
-                                  target={currentTarget}
-                                  handleOnClick={previewOnClick}
-                              />
-                          );
-                      })}
+                <div className={styles.chatContainer}>
+                    {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
+                    {searchTerm
+                        ? results.map((messageId) => {
+                              const message = searchResult[messageId];
+                              const context = message.context;
+                              return (
+                                  <PreviewMessages
+                                      key={messageId}
+                                      id={context}
+                                      contact={contactList.current[context].name}
+                                      username={publicUsername}
+                                      message={message}
+                                      readStatus={chatUtils.checkRead(
+                                          contactList.current[context],
+                                          message,
+                                      )}
+                                      handleOnClick={handlePreviewSearch}
+                                  />
+                              );
+                          })
+                        : contactsOrdered.map((contact) => {
+                              const lastMessageId = chatMessages[contact].last;
+                              const message = chatMessages[contact].messages[lastMessageId];
+                              return (
+                                  <PreviewMessages
+                                      key={contact}
+                                      id={contact}
+                                      contact={contactList.current[contact].name}
+                                      username={publicUsername}
+                                      message={message}
+                                      readStatus={chatUtils.checkRead(
+                                          contactList.current[contact],
+                                          message,
+                                      )}
+                                      target={currentTarget}
+                                      handleOnClick={previewOnClick}
+                                  />
+                              );
+                          })}
+                </div>
             </div>
             <div
                 className={styles.resizeHandler}

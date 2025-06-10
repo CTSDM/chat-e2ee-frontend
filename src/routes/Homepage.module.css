@@ -19,7 +19,8 @@
 
 .leftSide {
   min-width: 300px;
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
 }
 
 .resizeHandler {
@@ -39,4 +40,11 @@
 .fade {
   background-color: rgba(0, 0, 0, 0);
   transition: background-color 0.25s ease;
+}
+
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
 }

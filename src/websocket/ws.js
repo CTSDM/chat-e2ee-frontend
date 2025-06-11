@@ -8,7 +8,7 @@ import {
 
 let socket = null;
 
-function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars, setUpdate) {
+function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVars) {
     socket = new WebSocket(`${env.wsType}://${env.wsUrl}`);
     // by default the browser handles the data as Blobs
     socket.binaryType = "arraybuffer";
@@ -62,11 +62,7 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                 indexMessage = messageIndexes[context];
                 ++messageIndexes[context];
             }
-            if (contacts.current[context]) {
-                if (codeMessage === 1 || codeMessage === 3) {
-                    setUpdate(true);
-                }
-            } else {
+            if (!contacts.current[context]) {
                 // the current context is not in the contact list
                 // i need to improve this
                 if (contextType === "user") {

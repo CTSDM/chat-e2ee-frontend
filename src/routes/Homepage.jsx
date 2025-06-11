@@ -89,7 +89,7 @@ export default function Homepage() {
             // we also change the background color of the hack to shape the message bubble
             bubbleHack.classList.add(styles.view);
             bubbleHack.classList.remove(styles.fade);
-            divContainer.scrollIntoView();
+            setTimeout(() => divContainer.scrollIntoView(), 50); // quick fix
             // we check if there is another timeout handler, we clear it first
             if (timeoutHandler.current[targetMessage]) {
                 clearTimeout(timeoutHandler.current[targetMessage]);
@@ -102,6 +102,7 @@ export default function Homepage() {
                 bubbleHack.classList.remove(styles.view);
             }, t);
         }
+        setTargetMessage("");
         return () => {
             if (!targetMessage) {
                 const keys = Object.keys(timeoutHandler.current);

@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import TextArea from "./TextArea.jsx";
 import { env } from "../../config/config.js";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { chatUtils, domUtils } from "../utils/utils.js";
 import styles from "./Chat.module.css";
 import PrivateRoom from "./PrivateRoom.jsx";
@@ -9,6 +9,9 @@ import GroupRoom from "./GroupRoom.jsx";
 
 function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo, id }) {
     const input = env.inputs.message;
+    // isEnd is used to make a new message is not scrolled into view unless the scroll is at the end
+    const [isEnd, setIsEnd] = useState(true);
+    const [justSubmited, setJustSubmited] = useState(false);
     const messagesLength = useRef(0);
     const refForm = useRef(null);
     const refScrollbar = useRef(null);
@@ -58,7 +61,7 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
         };
         refScrollbar.current.style["min-height"] = `0px`;
         refScrollbar.current.style["opacity"] = "0";
-        refScrollbar.current.classList.remove("scrollbar-dynamics");
+        // refScrollbar.current.classList.remove("scrollbar-dynamics");
         refScrollbar.current.style["transform"] = "translateY(0px)";
     }, [id]);
 
@@ -102,6 +105,12 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
         }
     }, [id]);
 
+    useEffect(() => {
+        if (justSubmited === true) {
+            setJustSubmited(false);
+        }
+    }, [justSubmited]);
+
     function handleSubmitTextArea(e) {
         e.preventDefault();
         const form = e.currentTarget;
@@ -110,6 +119,7 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
         if (message.length > 0) {
             form.reset();
             handleOnSubmit(message);
+            setJustSubmited(true);
         }
     }
 
@@ -121,7 +131,7 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
         );
         if (newHeight === 0) {
             //useful when removing messages or resizing the page
-            refScrollbar.current.classList.remove("scrollbar-transition");
+            // refScrollbar.current.classList.remove("scrollbar-dynamics");
             refScrollbar.current.style["opacity"] = "0";
             refScrollbar.current.style["transform"] = "translateY(0px)";
             refScrollbar.current.style["min-height"] = `0px`;
@@ -131,6 +141,12 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
             refScrollbar.current.style["min-height"] = `${newHeight}px`;
             refScrollbar.current.style["opacity"] = "1";
             refScrollbar.current.style["transform"] = `translateY(${bottom}px)`;
+            // we check if the scrollbar is at the end
+            if (bottom + newHeight >= refMessagesContainer.current.clientHeight) {
+                setIsEnd(true);
+            } else {
+                setIsEnd(false);
+            }
         }
     }
 
@@ -212,6 +228,8 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
                         members={contactInfo.members}
                         refContainer={refMessagesContainer}
                         onScroll={onMouseOver}
+                        isEnd={isEnd}
+                        submited={justSubmited}
                     />
                 ) : (
                     <PrivateRoom
@@ -219,6 +237,8 @@ function Chat({ messages, handleOnSubmit, handleOnRender, username, contactInfo,
                         username={username}
                         refContainer={refMessagesContainer}
                         onScroll={onMouseOver}
+                        isEnd={isEnd}
+                        submited={justSubmited}
                     />
                 )}
                 <div

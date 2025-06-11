@@ -1,12 +1,33 @@
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
+import MessageBubble from "./MessageBubble.jsx";
 import styles from "./Room.module.css";
-import MessageBubble from "./MessageBubble";
 
-function PrivateRoom({ messagesArr, username, refContainer, onScroll }) {
+function PrivateRoom({ messagesArr, username, refContainer, onScroll, isEnd, submited }) {
+    const [enableScroll, setEnableScroll] = useState(true);
+
+    useEffect(() => {
+        setEnableScroll(false);
+    }, []);
+
+    useEffect(() => {
+        if (isEnd === true) {
+            setEnableScroll(true);
+        } else {
+            setEnableScroll(false);
+        }
+    }, [isEnd]);
+
+    let scrollToLast = false;
+
     const messagesArrLen = messagesArr.length;
     return (
         <div className={styles.messagesContainer} ref={refContainer} onScroll={onScroll}>
             {messagesArr.map((message, index) => {
+                if (index === messagesArrLen - 1) {
+                    if (submited) scrollToLast = true;
+                    else scrollToLast = enableScroll;
+                }
                 return (
                     <MessageBubble
                         key={message.id}
@@ -17,7 +38,7 @@ function PrivateRoom({ messagesArr, username, refContainer, onScroll }) {
                         isRead={message.read}
                         username={username}
                         showAuthor={false}
-                        scrollToLast={index === messagesArrLen - 1 ? true : false}
+                        scrollToLast={scrollToLast}
                     />
                 );
             })}
@@ -30,6 +51,8 @@ PrivateRoom.propTypes = {
     username: PropTypes.string.isRequired,
     refContainer: PropTypes.object,
     onScroll: PropTypes.func.isRequired,
+    isEnd: PropTypes.bool.isRequired,
+    submited: PropTypes.bool.isRequired,
 };
 
 export default PrivateRoom;

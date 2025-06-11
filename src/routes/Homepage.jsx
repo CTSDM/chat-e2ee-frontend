@@ -75,6 +75,24 @@ export default function Homepage() {
         }
     });
 
+    // allows to close search results and chats and go the bare homepage by pressing escape
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // keyCode 27 is Escape
+            if (e.keyCode === 27) {
+                setCurrentTarget((previousTarget) => {
+                    if (previousTarget) return null;
+                    else {
+                        setSearchTerm("");
+                        return null;
+                    }
+                });
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
+
     // scroll into view the message that comes back from the result
     useEffect(() => {
         let divContainer;

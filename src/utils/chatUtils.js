@@ -12,13 +12,19 @@ function getCurrentMessages(messagesObj, target) {
 
 function orderChatRoom(messages, desc) {
     // the chatrooms will be ordered by date
-    // desc === true, otherwise the order is asc
     const messagesArr = [];
     for (let key in messages) {
         const message = messages[key];
         message.id = key;
         messagesArr.push(message);
     }
+    orderMessages(messagesArr, desc);
+    return messagesArr;
+}
+
+function orderMessages(messagesArr, desc) {
+    // order an array of messages by date
+    // desc === true, otherwise the order is asc
     const order = desc ? -1 : 1;
     if (messagesArr.length > 1) {
         messagesArr.sort((a, b) => {
@@ -27,7 +33,6 @@ function orderChatRoom(messages, desc) {
             return 0;
         });
     }
-    return messagesArr;
 }
 
 function checkRead(contextObj, message) {
@@ -51,4 +56,10 @@ function updateContactLastMessage(contactObj, time) {
     }
 }
 
-export default { getCurrentMessages, orderChatRoom, checkRead, updateContactLastMessage };
+export default {
+    getCurrentMessages,
+    orderChatRoom,
+    orderMessages,
+    checkRead,
+    updateContactLastMessage,
+};

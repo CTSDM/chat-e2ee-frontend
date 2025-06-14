@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
-import { chatUtils } from "../utils/utils.js";
+import PreviewSearch from "../components/PreviewSearch.jsx";
 
 export default function Homepage() {
     const {
@@ -31,7 +31,7 @@ export default function Homepage() {
     const [widthSidebar, setWidthSidebar] = useState(400);
     const [errMessages, setErrMessages] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [searchResult, setSearchResult] = useState({});
+    const [searchResult, setSearchResult] = useState([]);
     const isResize = useRef(false);
     const [currentTarget, setCurrentTarget] = useState(null);
     const [targetMessage, setTargetMessage] = useState("");
@@ -342,8 +342,6 @@ export default function Homepage() {
         }
     }
 
-    // these results are recalculated for every rerender of the homepage...
-    const results = getKeys(searchResult);
     const contactsOrdered = getContactsOrdered(contactList.current);
 
     return (
@@ -365,46 +363,35 @@ export default function Homepage() {
                     setSearchTerm={setSearchTerm}
                     searchTerm={searchTerm}
                     setResult={setSearchResult}
-                    result={searchResult}
                     chatList={chatMessages}
                 />
                 <div className={styles.chatContainer}>
                     {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
                     {searchTerm
-                        ? results.map((messageId) => {
-                              const message = searchResult[messageId];
+                        ? searchResult.map((message) => {
                               const context = message.context;
                               return (
-                                  <PreviewMessages
-                                      key={messageId}
+                                  <PreviewSearch
+                                      key={message.id}
                                       id={context}
-                                      contact={contactList.current[context].name}
+                                      contact={contactList.current[context]}
                                       username={publicUsername}
                                       message={message}
-                                      readStatus={chatUtils.checkRead(
-                                          contactList.current[context],
-                                          message,
-                                      )}
                                       handleOnClick={handlePreviewSearch}
                                   />
                               );
                           })
                         : contactsOrdered.map((contact) => {
-                              const lastMessageId = chatMessages[contact].last;
-                              const message = chatMessages[contact].messages[lastMessageId];
                               return (
                                   <PreviewMessages
                                       key={contact}
                                       id={contact}
-                                      contact={contactList.current[contact].name}
+                                      contact={contactList.current[contact]}
                                       username={publicUsername}
-                                      message={message}
-                                      readStatus={chatUtils.checkRead(
-                                          contactList.current[contact],
-                                          message,
-                                      )}
+                                      messages={chatMessages[contact].messages}
                                       target={currentTarget}
                                       handleOnClick={previewOnClick}
+                                      lastId={chatMessages[contact].last}
                                   />
                               );
                           })}

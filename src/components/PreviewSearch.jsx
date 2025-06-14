@@ -4,39 +4,36 @@ import { dataManipulationUtils as dataManipulation, chatUtils } from "../utils/u
 import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 
-function PreviewMessages({ contact, id, target, messages, handleOnClick, username, lastId }) {
-    let divContentPreview = <div>No messages yet...</div>;
+function PreviewSearch({ contact, id, target, message, handleOnClick, username }) {
+    let divContentPreview;
     let dateFormatted;
     let isAuthorUser;
     let readStatusObj;
     let readStatus;
 
-    const message = messages[lastId];
-    if (message) {
-        readStatus = chatUtils.checkRead(contact, message);
-        isAuthorUser = message.author === username;
-        dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
-        const spanContent = <span className={styles.text}>{message.content}</span>;
-        if (isAuthorUser) {
-            if (readStatus) readStatusObj = { src: readImg, alt: "read" };
-            else readStatusObj = { src: notReadImg, alt: "not yet read" };
+    readStatus = chatUtils.checkRead(contact, message);
+    isAuthorUser = message.author === username;
+    dateFormatted = dataManipulation.getDateFormatted(message.createdAt);
+    const spanContent = <span className={styles.text}>{message.content}</span>;
+    if (isAuthorUser) {
+        if (readStatus) readStatusObj = { src: readImg, alt: "read" };
+        else readStatusObj = { src: notReadImg, alt: "not yet read" };
+        divContentPreview = (
+            <div>
+                <span className={styles.self}>You:&nbsp;</span>
+                {spanContent}
+            </div>
+        );
+    } else {
+        if (id.length > 16) {
             divContentPreview = (
                 <div>
-                    <span className={styles.self}>You:&nbsp;</span>
+                    <span className={styles.otherWithinGroup}>{message.author}:&nbsp;</span>
                     {spanContent}
                 </div>
             );
         } else {
-            if (id.length > 16) {
-                divContentPreview = (
-                    <div>
-                        <span className={styles.otherWithinGroup}>{message.author}:&nbsp;</span>
-                        {spanContent}
-                    </div>
-                );
-            } else {
-                divContentPreview = <div>{spanContent}</div>;
-            }
+            divContentPreview = <div>{spanContent}</div>;
         }
     }
 
@@ -69,22 +66,18 @@ function PreviewMessages({ contact, id, target, messages, handleOnClick, usernam
     );
 }
 
-PreviewMessages.propTypes = {
+PreviewSearch.propTypes = {
     id: PropTypes.string.isRequired,
     target: PropTypes.string,
     contact: PropTypes.object.isRequired,
     username: PropTypes.string.isRequired,
-    messages: PropTypes.oneOfType([
-        PropTypes.object.isRequired,
-        PropTypes.shape({
-            author: PropTypes.string.isRequired,
-            content: PropTypes.string.isRequired,
-            createdAt: PropTypes.object.isRequired,
-            id: PropTypes.string.isRequired,
-        }),
-    ]),
+    message: PropTypes.shape({
+        author: PropTypes.string.isRequired,
+        content: PropTypes.string.isRequired,
+        createdAt: PropTypes.object.isRequired,
+        id: PropTypes.string,
+    }),
     handleOnClick: PropTypes.func.isRequired,
-    lastId: PropTypes.string,
 };
 
-export default PreviewMessages;
+export default PreviewSearch;

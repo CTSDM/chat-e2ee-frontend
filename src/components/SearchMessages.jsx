@@ -1,13 +1,14 @@
 import PropTypes from "prop-types";
-import styles from "./SearchMessages.module.css";
 import { useEffect } from "react";
+import { chatUtils } from "../utils/utils.js";
+import styles from "./SearchMessages.module.css";
 
 function SearchMessages({ chatList, searchTerm, setSearchTerm, setResult }) {
     useEffect(() => {
         if (searchTerm) {
-            // we just filter the messages
+            // we filter the message and return an array with reverse order
             const contexts = Object.keys(chatList);
-            const matches = {};
+            const matches = [];
             contexts.forEach((context) => {
                 const contextMessages = chatList[context].messages;
                 for (const messageId in contextMessages) {
@@ -16,13 +17,14 @@ function SearchMessages({ chatList, searchTerm, setSearchTerm, setResult }) {
                         const message = structuredClone(contextMessages[messageId]);
                         message.id = messageId;
                         message.context = context;
-                        matches[messageId] = message;
+                        matches.push(message);
                     }
                 }
             });
+            chatUtils.orderMessages(matches, true);
             setResult(matches);
         } else {
-            setResult({});
+            setResult([]);
         }
     }, [searchTerm, setResult, chatList]);
 

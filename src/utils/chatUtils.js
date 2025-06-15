@@ -56,10 +56,80 @@ function updateContactLastMessage(contactObj, time) {
     }
 }
 
+function getKeys(obj) {
+    // the expected object should be as follows
+    // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
+    const arr = [];
+    for (let key in obj) {
+        arr.push(key);
+    }
+    return arr;
+}
+
+function getContactsOrdered(contactList) {
+    const contactsId = getKeys(contactList);
+    contactsId.sort((a, b) => {
+        const timeA = contactList[a].lastTime;
+        const timeB = contactList[b].lastTime;
+        if (timeA === undefined) {
+            return 1;
+        } else if (timeB === undefined) {
+            return -1;
+        }
+        return timeB - timeA;
+    });
+    return contactsId;
+}
+
+function getUnread(messages, context, username) {
+    if (context.length === 36) {
+        const count = getUnreadGroups(messages, context, username);
+        return count;
+    } else {
+        const count = getUnreadPrivate(messages);
+        return count;
+    }
+}
+
+function getUnreadPrivate(messages) {
+    const messagesArr = orderChatRoom(messages);
+    if (messagesArr && messagesArr.length) {
+        let count = 0;
+        for (let i = messagesArr.length - 1; i > 0; --i) {
+            if (messagesArr[i].read === false) {
+                ++count;
+            } else {
+                break;
+            }
+        }
+        return count;
+    }
+}
+
+function getUnreadGroups(messages, contact, username) {
+    const messagesArr = orderChatRoom(messages);
+    if (messagesArr && messagesArr.length) {
+        let count = 0;
+        for (let i = messagesArr.length - 1; i > 0; --i) {
+            const message = messagesArr[i];
+            if (message.read.length === 0) {
+                ++count;
+            } else {
+                if (checkRead(contact, message)) break;
+                else if (message.author === username) break;
+                ++count;
+            }
+        }
+        return count;
+    }
+}
+
 export default {
     getCurrentMessages,
     orderChatRoom,
     orderMessages,
     checkRead,
     updateContactLastMessage,
+    getContactsOrdered,
+    getUnread,
 };

@@ -67,3 +67,10 @@ button.container {
 .date {
   flex-shrink: 0;
 }
+
+.unreadCount {
+  background-color: #8774e1;
+  padding: 3px 7px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+}

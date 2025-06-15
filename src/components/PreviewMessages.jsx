@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useMemo } from "react";
 import styles from "./PreviewMessages.module.css";
 import { dataManipulationUtils as dataManipulation, chatUtils } from "../utils/utils";
 import notReadImg from "../assets/notRead.svg";
@@ -10,6 +11,23 @@ function PreviewMessages({ contact, id, target, messages, handleOnClick, usernam
     let isAuthorUser;
     let readStatusObj;
     let readStatus;
+
+    let readState;
+    if (lastId) {
+        const read = messages[lastId].read;
+        readState = typeof read === "boolean" ? read : read.length;
+    }
+
+    const isChatOpen = target === id;
+
+    const unreadCount = useMemo(() => {
+        if (isChatOpen) {
+            return 0;
+        }
+        if (lastId) {
+            return chatUtils.getUnread(messages, id, username);
+        }
+    }, [lastId, readState, isChatOpen]);
 
     const message = messages[lastId];
     if (message) {
@@ -63,6 +81,8 @@ function PreviewMessages({ contact, id, target, messages, handleOnClick, usernam
                 {divContentPreview}
                 {readStatus !== null && isAuthorUser ? (
                     <img className={styles.img} src={readStatusObj.src} alt={readStatusObj.alt} />
+                ) : unreadCount ? (
+                    <div className={styles.unreadCount}>{unreadCount}</div>
                 ) : null}
             </div>
         </button>

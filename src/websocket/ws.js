@@ -174,14 +174,8 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         if (contextType === "user") {
                             newChatMessages[context].messages[msgId].read = true;
                         } else {
-                            // we add the sender of the message to the read array in case it is not already added
-                            // only when the current user is the author of the message being sent
-                            if (
-                                newChatMessages[context].messages[msgId].author === publicUsername
-                            ) {
-                                if (!newChatMessages[context].messages[msgId].read.includes(sender))
-                                    newChatMessages[context].messages[msgId].read.push(sender);
-                            }
+                            if (!newChatMessages[context].messages[msgId].read.includes(sender))
+                                newChatMessages[context].messages[msgId].read.push(sender);
                         }
                         if (messageState[msgId]) delete messageState[msgId];
                     } else {
@@ -190,11 +184,9 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                             newChatMessages[context].messages[msgId] = messageState[msgId];
                             delete messageState[msgId];
                         } else {
-                            if (messageState[msgId].author === publicUsername) {
-                                if (!messageState[msgId].read.includes(sender)) {
-                                    messageState[msgId].read.push(sender);
-                                    newChatMessages[context].messages[msgId] = messageState[msgId];
-                                }
+                            if (!messageState[msgId].read.includes(sender)) {
+                                messageState[msgId].read.push(sender);
+                                newChatMessages[context].messages[msgId] = messageState[msgId];
                             }
                         }
                     }

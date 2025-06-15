@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
-import PreviewMessages from "../components/PreviewMessages.jsx";
+import PreviewWrapper from "../components/PreviewWrapper.jsx";
 import Chat from "../components/Chat.jsx";
 import ButtonDialog from "../components/ButtonDialog.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";
@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
-import PreviewSearch from "../components/PreviewSearch.jsx";
 
 export default function Homepage() {
     const {
@@ -33,7 +32,7 @@ export default function Homepage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResult, setSearchResult] = useState([]);
     const isResize = useRef(false);
-    const [currentTarget, setCurrentTarget] = useState(null);
+    const [target, setTarget] = useState("");
     const [targetMessage, setTargetMessage] = useState("");
     const timeoutHandler = useRef({});
     const navigate = useNavigate();
@@ -80,11 +79,11 @@ export default function Homepage() {
         const handleKeyDown = (e) => {
             // keyCode 27 is Escape
             if (e.keyCode === 27) {
-                setCurrentTarget((previousTarget) => {
-                    if (previousTarget) return null;
+                setTarget((previousTarget) => {
+                    if (previousTarget) return "";
                     else {
                         setSearchTerm("");
-                        return null;
+                        return "";
                     }
                 });
             }
@@ -173,7 +172,7 @@ export default function Homepage() {
                 key: sharedKey,
                 type: "user",
             };
-            setCurrentTarget(targetPublicUsernameLC);
+            setTarget(targetPublicUsernameLC);
             // we load the chatroom
             // we should receive the messages
             if (chatMessages[targetPublicUsernameLC] === undefined) {
@@ -191,24 +190,6 @@ export default function Homepage() {
         } else if (response.status === 400) {
             setErrMessages("The username is not valid.");
         }
-    }
-
-    function previewOnClick(name) {
-        // we change the current target, and thus the shown messages will change
-        // the chat will be ready to send messages to that contact
-        setCurrentTarget(name);
-    }
-
-    function handlePreviewSearch(name, messageId) {
-        setCurrentTarget(name);
-        setTargetMessage((previousId) => {
-            if (previousId === messageId) {
-                setTimeout(() => setTargetMessage(messageId), 0);
-                return "";
-            } else {
-                return messageId;
-            }
-        });
     }
 
     async function onSubmitCreateGroup(usernamesArr, groupName) {
@@ -231,7 +212,7 @@ export default function Homepage() {
         await addMemberToGroup(usernamesArr, groupId, keyRaw, symmetricKey, contactList);
         ws.sendMessage(5, groupId, cryptoUtils.getRandomValues(12));
         // we update the states at the end after the async operations
-        setCurrentTarget(groupId);
+        setTarget(groupId);
         setChatMessages((previousChatMessages) => {
             const newChatMessages = structuredClone(previousChatMessages);
             newChatMessages[groupId] = {
@@ -249,7 +230,7 @@ export default function Homepage() {
         const iv = cryptoUtils.getRandomValues(12);
         const id = uuidv4();
         const messageEncrypted = await cryptoUtils.getEncryptedMessage(
-            contactList.current[currentTarget].key,
+            contactList.current[target].key,
             {
                 name: "AES-GCM",
                 iv,
@@ -258,7 +239,7 @@ export default function Homepage() {
             message,
         );
         contactList.current = {
-            [currentTarget]: contactList.current[currentTarget],
+            [target]: contactList.current[target],
             ...contactList.current,
         };
         const usernameBuff = dataManipulation.stringToUint8Array(publicUsername, 16);
@@ -272,8 +253,8 @@ export default function Homepage() {
             iv.buffer,
             messageEncrypted,
         ]);
-        ws.sendMessage(flagByte, currentTarget, data);
-        const isGroup = currentTarget.length === 36;
+        ws.sendMessage(flagByte, target, data);
+        const isGroup = target.length === 36;
         setChatMessages((previousMessages) => {
             const newMessages = structuredClone(previousMessages);
             const newMessage = {
@@ -288,8 +269,8 @@ export default function Homepage() {
             } else {
                 newMessage.read = false;
             }
-            newMessages[currentTarget].messages[id] = newMessage;
-            newMessages[currentTarget].last = id;
+            newMessages[target].messages[id] = newMessage;
+            newMessages[target].last = id;
             return newMessages;
         });
     }
@@ -314,15 +295,15 @@ export default function Homepage() {
                         messageIdBuff,
                         dateArr,
                     ]);
-                    ws.sendMessage(2, currentTarget, data);
+                    ws.sendMessage(2, target, data);
                     setChatMessages((previousChatMessages) => {
                         const newChatMessages = structuredClone(previousChatMessages);
-                        newChatMessages[currentTarget].messages[message.id] = message;
+                        newChatMessages[target].messages[message.id] = message;
                         return newChatMessages;
                     });
                 }
             } else {
-                if (message.author === chatMessages[currentTarget].name && message.read === false) {
+                if (message.author === chatMessages[target].name && message.read === false) {
                     message.read = true;
                     const usernameBuff = dataManipulation.stringToUint8Array(
                         publicUsername.toLowerCase(),
@@ -330,19 +311,17 @@ export default function Homepage() {
                     );
                     const messageIdBuff = dataManipulation.stringToUint8Array(message.id);
                     const data = dataManipulation.groupBuffers([usernameBuff, messageIdBuff]);
-                    ws.sendMessage(2, currentTarget, data);
+                    ws.sendMessage(2, target, data);
                     // we need to update the message.read so it persists
                     setChatMessages((previousChatMessages) => {
                         const newChatMessages = structuredClone(previousChatMessages);
-                        newChatMessages[currentTarget].messages[message.id] = message;
+                        newChatMessages[target].messages[message.id] = message;
                         return newChatMessages;
                     });
                 }
             }
         }
     }
-
-    const contactsOrdered = getContactsOrdered(contactList.current);
 
     return (
         <div className={styles.container}>
@@ -366,35 +345,16 @@ export default function Homepage() {
                     chatList={chatMessages}
                 />
                 <div className={styles.chatContainer}>
-                    {contactsOrdered.length === 0 ? <div>No users yet...</div> : null}
-                    {searchTerm
-                        ? searchResult.map((message) => {
-                              const context = message.context;
-                              return (
-                                  <PreviewSearch
-                                      key={message.id}
-                                      id={context}
-                                      contact={contactList.current[context]}
-                                      username={publicUsername}
-                                      message={message}
-                                      handleOnClick={handlePreviewSearch}
-                                  />
-                              );
-                          })
-                        : contactsOrdered.map((contact) => {
-                              return (
-                                  <PreviewMessages
-                                      key={contact}
-                                      id={contact}
-                                      contact={contactList.current[contact]}
-                                      username={publicUsername}
-                                      messages={chatMessages[contact].messages}
-                                      target={currentTarget}
-                                      handleOnClick={previewOnClick}
-                                      lastId={chatMessages[contact].last}
-                                  />
-                              );
-                          })}
+                    <PreviewWrapper
+                        searchTerm={searchTerm}
+                        searchResult={searchResult}
+                        username={publicUsername}
+                        contactList={contactList.current}
+                        chatMessages={chatMessages}
+                        target={target}
+                        setTarget={setTarget}
+                        setTargetMessage={setTargetMessage}
+                    />
                 </div>
             </div>
             <div
@@ -402,14 +362,14 @@ export default function Homepage() {
                 onMouseDown={() => (isResize.current = true)}
             ></div>
             <div className={styles.rightSide}>
-                {currentTarget ? (
+                {target ? (
                     <Chat
-                        contactInfo={contactList.current[currentTarget]}
+                        contactInfo={contactList.current[target]}
                         messages={chatMessages}
                         handleOnSubmit={handleSubmitMessage}
                         handleOnRender={readMessages}
                         username={publicUsername}
-                        id={currentTarget} // If the string is uuidv4 then we have a group
+                        id={target} // If the string is uuidv4 then we have a group
                     />
                 ) : (
                     <div></div>
@@ -417,16 +377,6 @@ export default function Homepage() {
             </div>
         </div>
     );
-}
-
-function getKeys(obj) {
-    // the expected object should be as follows
-    // {id1: {key: ..., username: ...}, ..., {idn: {key: ..., username: ...}}
-    const arr = [];
-    for (let key in obj) {
-        arr.push(key);
-    }
-    return arr;
 }
 
 async function createGroup(groupName) {
@@ -470,19 +420,4 @@ async function addMemberToGroup(usersArr, groupId, keyRaw, symmetricKey, contact
         const data = dataManipulation.groupBuffers([usernameArr, keyUserData]);
         ws.sendMessage(4, groupId, data);
     }
-}
-
-function getContactsOrdered(contactList) {
-    const contactsId = getKeys(contactList);
-    contactsId.sort((a, b) => {
-        const timeA = contactList[a].lastTime;
-        const timeB = contactList[b].lastTime;
-        if (timeA === undefined) {
-            return 1;
-        } else if (timeB === undefined) {
-            return -1;
-        }
-        return timeB - timeA;
-    });
-    return contactsId;
 }

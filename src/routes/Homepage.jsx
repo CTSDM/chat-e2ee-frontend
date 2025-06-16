@@ -120,16 +120,16 @@ export default function Homepage() {
             }, t);
         }
         setTargetMessage("");
-        return () => {
-            if (!targetMessage) {
-                const keys = Object.keys(timeoutHandler.current);
-                keys.forEach((key) => {
-                    clearTimeout(timeoutHandler.current[key]);
-                });
-                timeoutHandler.current = {};
-            }
-        };
     }, [targetMessage, setTargetMessage]);
+
+    // clear the timers
+    useEffect(() => {
+        const keys = Object.keys(timeoutHandler.current);
+        keys.forEach((key) => {
+            clearTimeout(timeoutHandler.current[key]);
+        });
+        timeoutHandler.current = {};
+    }, []);
 
     if (isLogged === false || privateKey === null) {
         return null;

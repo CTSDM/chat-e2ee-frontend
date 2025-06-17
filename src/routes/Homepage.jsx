@@ -2,9 +2,7 @@ import { useContext, useEffect, useState, useRef } from "react";
 import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewWrapper from "../components/PreviewWrapper.jsx";
 import Chat from "../components/Chat.jsx";
-import ButtonDialog from "../components/ButtonDialog.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";
-import CreateGroup from "../components/CreateGroup.jsx";
 import { Context } from "./utils/globalStateContext.js";
 import { env } from "../../config/config.js";
 import requests from "../utils/requests.js";
@@ -14,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
+import NewConnection from "../components/NewConnection.jsx";
 
 export default function Homepage() {
     const {
@@ -327,16 +326,11 @@ export default function Homepage() {
         <div className={styles.container}>
             {errMessages ? <PopupMessage message={errMessages} /> : null}
             <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
-                <ButtonDialog
-                    text={"Add connection"}
-                    textModal={"Connect"}
-                    onSubmit={handleNewConnection}
-                    input={env.inputs.signup[1]}
-                />
-                <CreateGroup
+                <NewConnection
                     contactList={contactList.current}
-                    setErrorMessage={setErrMessages}
-                    onSubmit={onSubmitCreateGroup}
+                    newConnection={handleNewConnection}
+                    setErr={setErrMessages}
+                    createGroup={onSubmitCreateGroup}
                 />
                 <SearchMessages
                     setSearchTerm={setSearchTerm}

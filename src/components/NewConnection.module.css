@@ -1,0 +1,46 @@
+.container {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+}
+
+.new {
+  position: absolute;
+  bottom: -40px;
+  right: 30px;
+  transition: all 0.25s cubic-bezier(0.175, 0.5, .32, 1.275);
+  background-color: rgb(123, 113, 198);
+}
+
+.list {
+  position: absolute;
+  bottom: 80px;
+  right: 30px;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  text-wrap: nowrap;
+  transition: all 0.5s ease-in-out;
+  user-select: none;
+  gap: 5px;
+  border-radius: 10px;
+  background-color: #212121;
+}
+
+.list>button {
+  margin: 0px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  outline: inherit;
+}
+
+.list>button:hover {
+  background-color: #141414;
+}

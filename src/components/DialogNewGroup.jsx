@@ -1,13 +1,14 @@
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Form } from "react-router-dom";
 import InputText from "./InputComp";
-import styles from "./CreateGroup.module.css";
+import styles from "./DialogNewGroup.module.css";
 
-export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) {
+export default function DialogNewGroup({ state, contactList, setErrMessage, onSubmit }) {
     const usernameArr = [];
     const usernameOCArr = [];
     const [info, setInfo] = useState("");
+    const refDialog = useRef(null);
 
     for (let key in contactList) {
         if (contactList[key].type === "user") {
@@ -16,14 +17,12 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
         }
     }
 
-    // for now we can only add users that are already in our contact list
-    function createGroup(e) {
+    if (state) {
         if (usernameArr.length === 0) {
-            return setErrorMessage("You don't have any contacts yet.");
+            return setErrMessage("You don't have any contacts yet.");
         }
-        const dialog = e.currentTarget.parentElement.querySelector("dialog");
-        dialog.classList.add(styles.dialogContent);
-        dialog.showModal();
+        refDialog.current.classList.add(styles.dialogContent);
+        refDialog.current.showModal();
     }
 
     async function handleSubmit(e) {
@@ -42,33 +41,30 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
     }
 
     function cancelSubmit() {
-        const dialog = document.querySelector(`.${styles.container} dialog`);
-        const form = document.querySelector(`.${styles.container} form`);
-        dialog.classList.remove(styles.dialogContent);
-        dialog.close();
+        const form = refDialog.current.querySelector(`.${styles.container} form`);
+        refDialog.current.classList.remove(styles.dialogContent);
+        refDialog.current.close();
         form.reset();
     }
 
     function closeDialog(e) {
-        const dialog = e.currentTarget;
-        if (e.target === dialog) {
-            dialog.classList.remove(styles.dialogContent);
-            dialog.close();
+        if (e.target === refDialog.current) {
+            refDialog.current.classList.remove(styles.dialogContent);
+            refDialog.current.close();
             setInfo("");
         }
     }
 
-    function handleOnCloseDialog(e) {
-        const dialog = e.currentTarget;
-        const form = dialog.querySelector("form");
-        dialog.classList.remove(styles.dialogContent);
+    function handleOnCloseDialog() {
+        const form = refDialog.current.querySelector("form");
+        refDialog.current.classList.remove(styles.dialogContent);
         setInfo("");
         form.reset();
     }
 
     return (
         <div className={styles.container}>
-            <dialog onClick={closeDialog} onClose={handleOnCloseDialog}>
+            <dialog onClick={closeDialog} onClose={handleOnCloseDialog} ref={refDialog}>
                 <Form onSubmit={handleSubmit}>
                     <div className={styles.dialogContent}>
                         <div className={styles.optionsContainer}>
@@ -101,15 +97,13 @@ export default function CreateGroup({ contactList, setErrorMessage, onSubmit }) 
                     </div>
                 </Form>
             </dialog>
-            <button type="button" onClick={createGroup}>
-                {"Create group."}
-            </button>
         </div>
     );
 }
 
-CreateGroup.propTypes = {
+DialogNewGroup.propTypes = {
+    state: PropTypes.bool.isRequired,
     contactList: PropTypes.object.isRequired,
-    setErrorMessage: PropTypes.func.isRequired,
+    setErrMessage: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,
 };

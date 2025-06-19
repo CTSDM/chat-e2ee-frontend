@@ -70,7 +70,7 @@ function PreviewMessages({ contact, id, target, messages, handleOnClick, usernam
             type="button"
             className={stylesContainer}
             onClick={() => {
-                handleOnClick(id.toLowerCase(), message && message.id);
+                handleOnClick(id.toLowerCase());
             }}
         >
             <div className={styles.row}>

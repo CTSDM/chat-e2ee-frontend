@@ -124,6 +124,12 @@ function getUnreadGroups(messages, contact, username) {
     }
 }
 
+function getUsersId(contactList) {
+    const contactsId = getKeys(contactList);
+    const usersId = contactsId.filter((id) => contactList[id].type === "user");
+    return usersId;
+}
+
 export default {
     getCurrentMessages,
     orderChatRoom,
@@ -132,4 +138,5 @@ export default {
     updateContactLastMessage,
     getContactsOrdered,
     getUnread,
+    getUsersId,
 };

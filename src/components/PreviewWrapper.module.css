@@ -1,0 +1,8 @@
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  position: absolute;
+  transition: all 0.2s ease;
+}

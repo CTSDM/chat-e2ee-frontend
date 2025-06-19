@@ -5,7 +5,7 @@ import { Form } from "react-router-dom";
 import { useRef, useState } from "react";
 import styles from "./DialogNewPrivateConnection.module.css";
 
-function DialogNewPrivateConnection({ state, textModal, input, onSubmit }) {
+function DialogNewPrivateConnection({ state, textModal, input, onSubmit, setState }) {
     const [msgArray, setMsgArray] = useState([]);
     const refDialog = useRef(null);
 
@@ -14,11 +14,12 @@ function DialogNewPrivateConnection({ state, textModal, input, onSubmit }) {
         refDialog.current.showModal();
     }
 
-    function closeDialog(e) {
+    function handleOnClick(e) {
         const dialog = document.querySelector("dialog");
         if (e.target === dialog) {
             dialog.classList.remove(styles.dialogContent);
             dialog.close();
+            setState(false);
         }
     }
 
@@ -33,19 +34,26 @@ function DialogNewPrivateConnection({ state, textModal, input, onSubmit }) {
             dialog.classList.remove(styles.dialogContent);
             dialog.close();
             form.reset();
+            setState(false);
         }
     }
 
-    function handleOnCloseDialog(e) {
+    function handleOnClose(e) {
         const dialog = e.currentTarget;
         const form = dialog.querySelector("form");
         dialog.classList.remove(styles.dialogContent);
         form.reset();
+        setState(false);
     }
 
     return (
         <div className={styles.container}>
-            <dialog onClick={closeDialog} onClose={handleOnCloseDialog} ref={refDialog}>
+            <dialog
+                onClick={handleOnClick}
+                onClose={handleOnClose}
+                ref={refDialog}
+                className={"add"}
+            >
                 <Form onSubmit={handleSubmit}>
                     <div className={styles.dialogContent}>
                         <InputText
@@ -71,6 +79,7 @@ DialogNewPrivateConnection.propTypes = {
     textModal: PropTypes.string.isRequired,
     input: PropTypes.object.isRequired,
     onSubmit: PropTypes.func.isRequired,
+    setState: PropTypes.func.isRequired,
 };
 
 export default DialogNewPrivateConnection;

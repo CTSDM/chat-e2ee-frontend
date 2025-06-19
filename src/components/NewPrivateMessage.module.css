@@ -1,0 +1,35 @@
+.container {
+  visibility: hidden;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.user {
+  background: #17212b;
+}
+
+.user:focus {
+  outline: none;
+}
+
+.user:hover {
+  background: #202b36;
+}
+
+.add {
+  visibility: hidden;
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  transition: all 0.25s cubic-bezier(0.175, 0.5, .32, 1.275);
+  background-color: rgb(123, 113, 198);
+}
+
+.add:focus {
+  outline: none;
+}

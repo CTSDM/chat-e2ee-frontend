@@ -1,7 +1,9 @@
 import PropTypes from "prop-types";
+import { useRef } from "react";
 import PreviewSearch from "./PreviewSearch.jsx";
 import PreviewMessages from "./PreviewMessages.jsx";
 import { chatUtils } from "../utils/utils.js";
+import styles from "./PreviewWrapper.module.css";
 
 function PreviewSearchWrapper({
     searchTerm,
@@ -12,7 +14,9 @@ function PreviewSearchWrapper({
     target,
     setTarget,
     setTargetMessage,
+    active,
 }) {
+    const refContainer = useRef(null);
     const contactsOrdered = chatUtils.getContactsOrdered(contactList);
     if (contactsOrdered.length === 0) {
         return <div>No users yet...</div>;
@@ -36,34 +40,49 @@ function PreviewSearchWrapper({
         });
     }
 
-    return searchTerm
-        ? searchResult.map((message) => {
-              const context = message.context;
-              return (
-                  <PreviewSearch
-                      key={message.id}
-                      id={context}
-                      contact={contactList[context]}
-                      username={username}
-                      message={message}
-                      handleOnClick={handlePreviewSearch}
-                  />
-              );
-          })
-        : contactsOrdered.map((contact) => {
-              return (
-                  <PreviewMessages
-                      key={contact}
-                      id={contact}
-                      contact={contactList[contact]}
-                      username={username}
-                      messages={chatMessages[contact].messages}
-                      target={target}
-                      handleOnClick={handlePreviewMessage}
-                      lastId={chatMessages[contact].last}
-                  />
-              );
-          });
+    if (refContainer.current) {
+        if (active) {
+            refContainer.current.style["z-index"] = 0;
+            refContainer.current.style["opacity"] = 1;
+        } else {
+            refContainer.current.style["z-index"] = -1;
+            refContainer.current.style["opacity"] = 0;
+        }
+    }
+
+    return (
+        <div className={styles.chatContainer} ref={refContainer}>
+            {searchTerm
+                ? searchResult.map((message) => {
+                      const context = message.context;
+                      return (
+                          <PreviewSearch
+                              key={message.id}
+                              id={context}
+                              contact={contactList[context]}
+                              username={username}
+                              message={message}
+                              handleOnClick={handlePreviewSearch}
+                              active={active}
+                          />
+                      );
+                  })
+                : contactsOrdered.map((contact) => {
+                      return (
+                          <PreviewMessages
+                              key={contact}
+                              id={contact}
+                              contact={contactList[contact]}
+                              username={username}
+                              messages={chatMessages[contact].messages}
+                              target={target}
+                              handleOnClick={handlePreviewMessage}
+                              lastId={chatMessages[contact].last}
+                          />
+                      );
+                  })}
+        </div>
+    );
 }
 
 PreviewSearchWrapper.propTypes = {
@@ -75,6 +94,7 @@ PreviewSearchWrapper.propTypes = {
     target: PropTypes.string.isRequired,
     setTarget: PropTypes.func.isRequired,
     setTargetMessage: PropTypes.func.isRequired,
+    active: PropTypes.bool.isRequired,
 };
 
 export default PreviewSearchWrapper;

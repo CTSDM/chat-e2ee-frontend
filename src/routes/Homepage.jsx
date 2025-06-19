@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
 import NewConnection from "../components/NewConnection.jsx";
+import NewPrivateMessage from "../components/NewPrivateMessage.jsx";
 
 export default function Homepage() {
     const {
@@ -29,6 +30,8 @@ export default function Homepage() {
     const [widthSidebar, setWidthSidebar] = useState(400);
     const [errMessages, setErrMessages] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [creatingPrivateMessage, setCreatingPrivateMessage] = useState(false);
+    const [creatingGroupMessage, setCreatingGroupMessage] = useState(false);
     const [searchResult, setSearchResult] = useState([]);
     const isResize = useRef(false);
     const [target, setTarget] = useState("");
@@ -81,7 +84,13 @@ export default function Homepage() {
                 setTarget((previousTarget) => {
                     if (previousTarget) return "";
                     else {
+                        const dialogPrivate = document.querySelector("dialog.add");
+                        if (dialogPrivate.open) {
+                            return "";
+                        }
                         setSearchTerm("");
+                        setCreatingGroupMessage(false);
+                        setCreatingPrivateMessage(false);
                         return "";
                     }
                 });
@@ -327,10 +336,10 @@ export default function Homepage() {
             {errMessages ? <PopupMessage message={errMessages} /> : null}
             <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
                 <NewConnection
-                    contactList={contactList.current}
-                    newConnection={handleNewConnection}
-                    setErr={setErrMessages}
-                    createGroup={onSubmitCreateGroup}
+                    newPrivate={creatingPrivateMessage}
+                    newGroup={creatingGroupMessage}
+                    setNewPrivate={setCreatingPrivateMessage}
+                    setNewGroup={setCreatingGroupMessage}
                 />
                 <SearchMessages
                     setSearchTerm={setSearchTerm}
@@ -338,18 +347,24 @@ export default function Homepage() {
                     setResult={setSearchResult}
                     chatList={chatMessages}
                 />
-                <div className={styles.chatContainer}>
-                    <PreviewWrapper
-                        searchTerm={searchTerm}
-                        searchResult={searchResult}
-                        username={publicUsername}
-                        contactList={contactList.current}
-                        chatMessages={chatMessages}
-                        target={target}
-                        setTarget={setTarget}
-                        setTargetMessage={setTargetMessage}
-                    />
-                </div>
+                <PreviewWrapper
+                    searchTerm={searchTerm}
+                    searchResult={searchResult}
+                    username={publicUsername}
+                    contactList={contactList.current}
+                    chatMessages={chatMessages}
+                    target={target}
+                    setTarget={setTarget}
+                    setTargetMessage={setTargetMessage}
+                    active={!creatingPrivateMessage && !creatingGroupMessage}
+                />
+                <NewPrivateMessage
+                    contactList={contactList.current}
+                    active={creatingPrivateMessage}
+                    setActive={setCreatingPrivateMessage}
+                    setTarget={setTarget}
+                    newConnection={handleNewConnection}
+                />
             </div>
             <div
                 className={styles.resizeHandler}

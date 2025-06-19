@@ -2,18 +2,23 @@
   position: absolute;
   bottom: 0px;
   right: 0px;
+  z-index: 1;
 }
 
-.new {
+.general {
   position: absolute;
-  bottom: -40px;
+  bottom: -100px;
   right: 30px;
   transition: all 0.25s cubic-bezier(0.175, 0.5, .32, 1.275);
   background-color: rgb(123, 113, 198);
 }
 
-.new:focus {
+.general:focus {
   outline: none;
+}
+
+.disabled {
+  pointer-events: none;
 }
 
 .list {

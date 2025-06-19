@@ -1,10 +1,12 @@
 import PropTypes from "prop-types";
+import { useRef } from "react";
 import styles from "./PreviewMessages.module.css";
 import { dataManipulationUtils as dataManipulation, chatUtils } from "../utils/utils";
 import notReadImg from "../assets/notRead.svg";
 import readImg from "../assets/read.svg";
 
-function PreviewSearch({ contact, id, target, message, handleOnClick, username }) {
+function PreviewSearch({ contact, id, target, message, handleOnClick, username, active }) {
+    const refContainer = useRef(null);
     let divContentPreview;
     let dateFormatted;
     let isAuthorUser;
@@ -44,6 +46,10 @@ function PreviewSearch({ contact, id, target, message, handleOnClick, username }
         stylesContainer = `${styles.container}`;
     }
 
+    if (!active) {
+        refContainer.current.style["z-index"] = 1;
+    }
+
     return (
         <button
             type="button"
@@ -78,6 +84,7 @@ PreviewSearch.propTypes = {
         id: PropTypes.string,
     }),
     handleOnClick: PropTypes.func.isRequired,
+    active: PropTypes.bool.isRequired,
 };
 
 export default PreviewSearch;

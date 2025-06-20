@@ -19,7 +19,9 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
     const reqPromisesHandler = {};
     const cryptoPromisesHandler = {};
     const messageIndexes = {};
-    const messageState = {};
+    // messageState only keeps the read state of groups when loading the database
+    // private messages do not need it because the status is sent along the message in a single blob
+    const messageState = {}; //
 
     function onError(err) {
         console.error("Websocket error: ", err);
@@ -55,6 +57,10 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
             const contextType = context.length === 36 ? "group" : "user";
             const sender = dataManipulation.arrBufferToString(data.slice(48, 64));
             const msgId = dataManipulation.arrBufferToString(data.slice(64, 100));
+            if (contextType === "group") {
+                // we need to create the helper object before any async operation
+                messageState[msgId] = { read: [] };
+            }
             // we create an index to keep track of the message index.
             if (!messageIndexes[context]) messageIndexes[context] = 0;
             let indexMessage;
@@ -125,19 +131,22 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         createdAt: messageDate,
                     };
                     // a message just received from the other user through the server is always false
-                    // however, if the message comes from the database, we get its state
-                    // for now this only work for direct messages
+                    // however, if the message comes from the database, we get its state too (only for private messages)
+                    // we check whether the temporary object used for the read status has any data
+                    // if it has any data it means there was a race condition and we copy the read status to the new object
                     if (contextType === "group") {
-                        newMessage.read = [];
+                        const read = messageState[msgId].read;
+                        newMessage.read = read;
                     } else {
                         if (codeMessage === 3) {
                             newMessage.read = readStatus;
                         } else {
                             newMessage.read = false;
                         }
-                        delete cryptoPromisesHandler[msgId];
-                        delete messageState[msgId];
                     }
+                    // at this point we delete the crypto helper objects
+                    delete cryptoPromisesHandler[msgId];
+
                     newChatMessages[context].messages[msgId] = newMessage;
                     // the if below can be optimized or delegated to a function
                     if (!newChatMessages[context].last) {
@@ -147,10 +156,9 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                         newChatMessages[context].last = msgId;
                         newChatMessages[context].lastIndex = indexMessage;
                     }
-                    if (contextType === "group")
-                        messageState[msgId] = newChatMessages[context].messages[msgId];
                     return newChatMessages;
                 });
+                setTimeout(() => delete messageState[msgId], 1000); // remove the helper objects async
                 // we attach the date of the last message to the contact object
                 const timeLastMessage = dataManipulation.getTimeFromBuffer(timeBuff);
                 chatUtils.updateContactLastMessage(contacts.current[context], timeLastMessage);
@@ -177,16 +185,11 @@ function start(publicUsername, selfPrivateKey, symKey, contacts, setChat, userVa
                             if (!newChatMessages[context].messages[msgId].read.includes(sender))
                                 newChatMessages[context].messages[msgId].read.push(sender);
                         }
-                        if (messageState[msgId]) delete messageState[msgId];
                     } else {
-                        if (contextType === "user") {
-                            messageState[msgId].read = true;
-                            newChatMessages[context].messages[msgId] = messageState[msgId];
-                            delete messageState[msgId];
-                        } else {
+                        // messageState only has the read field and it is only useful for groups
+                        if (contextType === "group") {
                             if (!messageState[msgId].read.includes(sender)) {
                                 messageState[msgId].read.push(sender);
-                                newChatMessages[context].messages[msgId] = messageState[msgId];
                             }
                         }
                     }

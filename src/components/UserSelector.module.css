@@ -1,0 +1,25 @@
+.user:focus {
+  outline: none;
+}
+
+.user:hover {
+  background: #202b36;
+}
+
+.user {
+  background: #17212b;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.user input {
+  cursor: pointer;
+}
+
+.user:focus {
+  outline: white;
+}

@@ -14,6 +14,7 @@ import dataManipulation from "../utils/dataManipulation.js";
 import styles from "./Homepage.module.css";
 import NewConnection from "../components/NewConnection.jsx";
 import NewPrivateMessage from "../components/NewPrivateMessage.jsx";
+import NewGroup from "../components/NewGroup.jsx";
 
 export default function Homepage() {
     const {
@@ -31,7 +32,7 @@ export default function Homepage() {
     const [errMessages, setErrMessages] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [creatingPrivateMessage, setCreatingPrivateMessage] = useState(false);
-    const [creatingGroupMessage, setCreatingGroupMessage] = useState(false);
+    const [creatingGroupObj, setCreatingGroupObj] = useState({ first: false, second: false });
     const [searchResult, setSearchResult] = useState([]);
     const isResize = useRef(false);
     const [target, setTarget] = useState("");
@@ -88,8 +89,14 @@ export default function Homepage() {
                         if (dialogPrivate.open) {
                             return "";
                         }
+                        setCreatingGroupObj((previous) => {
+                            if (previous.second === true) {
+                                return { first: true, second: false };
+                            } else {
+                                return { first: false, second: false };
+                            }
+                        });
                         setSearchTerm("");
-                        setCreatingGroupMessage(false);
                         setCreatingPrivateMessage(false);
                         return "";
                     }
@@ -337,9 +344,9 @@ export default function Homepage() {
             <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
                 <NewConnection
                     newPrivate={creatingPrivateMessage}
-                    newGroup={creatingGroupMessage}
+                    newGroup={creatingGroupObj.first}
                     setNewPrivate={setCreatingPrivateMessage}
-                    setNewGroup={setCreatingGroupMessage}
+                    setNewGroup={setCreatingGroupObj}
                 />
                 <SearchMessages
                     setSearchTerm={setSearchTerm}
@@ -356,7 +363,7 @@ export default function Homepage() {
                     target={target}
                     setTarget={setTarget}
                     setTargetMessage={setTargetMessage}
-                    active={!creatingPrivateMessage && !creatingGroupMessage}
+                    active={!creatingPrivateMessage && !setCreatingGroupObj.first}
                 />
                 <NewPrivateMessage
                     contactList={contactList.current}
@@ -364,6 +371,13 @@ export default function Homepage() {
                     setActive={setCreatingPrivateMessage}
                     setTarget={setTarget}
                     newConnection={handleNewConnection}
+                />
+                <NewGroup
+                    contactList={contactList.current}
+                    state={creatingGroupObj}
+                    setState={setCreatingGroupObj}
+                    newGroup={onSubmitCreateGroup}
+                    username={publicUsername}
                 />
             </div>
             <div

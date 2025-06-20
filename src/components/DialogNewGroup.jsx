@@ -4,7 +4,7 @@ import { Form } from "react-router-dom";
 import InputText from "./InputComp";
 import styles from "./DialogNewGroup.module.css";
 
-export default function DialogNewGroup({ state, contactList, setErrMessage, onSubmit }) {
+export default function DialogNewGroup({ state, contactList, setErrMessage, onSubmit, setState }) {
     const usernameArr = [];
     const usernameOCArr = [];
     const [info, setInfo] = useState("");
@@ -103,6 +103,7 @@ export default function DialogNewGroup({ state, contactList, setErrMessage, onSu
 
 DialogNewGroup.propTypes = {
     state: PropTypes.bool.isRequired,
+    setState: PropTypes.func.isRequired,
     contactList: PropTypes.object.isRequired,
     setErrMessage: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,

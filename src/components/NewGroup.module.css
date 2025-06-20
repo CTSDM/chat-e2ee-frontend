@@ -1,0 +1,57 @@
+.general {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background-color: #17212b;
+}
+
+.container {
+  visibility: hidden;
+  position: absolute;
+  transition: all 0.2s ease;
+  height: 100%;
+  width: 100%;
+}
+
+.form {
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.container {
+  background-color: #17212b;
+}
+
+.user {
+  background: #17212b;
+}
+
+.user:focus {
+  outline: none;
+}
+
+.user:hover {
+  background: #202b36;
+}
+
+.add,
+.next {
+  visibility: hidden;
+  position: absolute;
+  bottom: 80px;
+  right: 30px;
+  transition: all 0.25s cubic-bezier(0.175, 0.5, .32, 1.275);
+  background-color: rgb(123, 113, 198);
+  user-select: none;
+}
+
+.add img,
+.next img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.add:focus,
+.next:focus {
+  outline: none;
+}

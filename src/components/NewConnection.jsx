@@ -65,7 +65,7 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
     }, []);
 
     useEffect(() => {
-        if (newPrivate || newGroup) return;
+        if (newPrivate || newGroup.first) return;
         if (hover) {
             clearTimeout(refHandlerTimer.current.hover);
             clearTimeout(refHandlerTimer.current.active);
@@ -121,15 +121,19 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
         // we load the screen with the contacts
         // we hide the list, the button also goes hidden
         setNewPrivate(true);
+        closeMenus();
+    }
+
+    function handleNewGroup() {
+        setNewGroup({ first: true, second: false });
+        closeMenus();
+    }
+
+    function closeMenus() {
         setHover(false);
         refGeneralButton.current.style["visibility"] = "hidden";
         refGeneralButton.current.style["bottom"] = "-50px";
         refList.current.style["visibility"] = "hidden";
-        refList.current.style["opacity"] = 0;
-    }
-
-    function handleNewGroup() {
-        setNewGroup(true);
     }
 
     function closeHelperMenus() {

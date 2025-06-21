@@ -1,7 +1,6 @@
 import PropTypes from "prop-types";
 import { Fragment, useEffect, useRef, useState } from "react";
 import styles from "./NewGroup.module.css";
-import DialogNewGroup from "./DialogNewGroup";
 import UserSelector from "./UserSelector.jsx";
 import InputText from "./InputComp.jsx";
 import { chatUtils } from "../utils/utils.js";
@@ -132,13 +131,6 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
         </div>
     );
 }
-// <DialogNewGroup
-//     state={toAdd}
-//     setToAdd={setToAdd}
-//     contactList={contactList}
-//     setErrMessage={setErr}
-//     onSubmit={onSubmit}
-// />
 
 NewGroup.propTypes = {
     state: PropTypes.object.isRequired,

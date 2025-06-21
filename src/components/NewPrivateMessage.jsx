@@ -36,8 +36,8 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
     const usersIdArr = chatUtils.getUsersId(contactList);
 
     return (
-        <>
-            <div className={styles.container} ref={refContainer}>
+        <div className={styles.container} ref={refContainer}>
+            <div className={styles.general}>
                 {usersIdArr.map((id) => {
                     const user = contactList[id];
                     return (
@@ -57,7 +57,7 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
                 onSubmit={newConnection}
                 input={env.inputs.signup[1]}
             />
-        </>
+        </div>
     );
 }
 

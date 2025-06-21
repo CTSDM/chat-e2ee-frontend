@@ -1,16 +1,16 @@
 import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
-import DialogNewGroup from "./DialogNewGroup.jsx";
 import styles from "./NewConnection.module.css";
 import newMsgGroupImg from "../assets/person.svg";
 import newMsgDirectImg from "../assets/group.svg";
 import showOptions from "../assets/plus.svg";
 import cancel from "../assets/cancel.svg";
 
-function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
+function NewConnection({ newPrivate, creatingGroup, setNewPrivate, setNewGroup }) {
     const [hover, setHover] = useState(false);
     const [active, setActive] = useState(false);
     const [helperButtonSrc, setHelperButtonSrc] = useState(showOptions);
+    const activationHelper = useRef(false); // helps to keep track of initial state for hover and newPrivate
     const refGeneralButton = useRef(null);
     const refContainer = useRef(null);
     const refList = useRef(null);
@@ -65,7 +65,7 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
     }, []);
 
     useEffect(() => {
-        if (newPrivate || newGroup.first) return;
+        if (newPrivate || creatingGroup) return;
         if (hover) {
             clearTimeout(refHandlerTimer.current.hover);
             clearTimeout(refHandlerTimer.current.active);
@@ -108,10 +108,11 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
     }, [active]);
 
     useEffect(() => {
-        if (!newPrivate) {
+        if (!newPrivate && !creatingGroup && activationHelper.current === true) {
             setHover(true);
+            activationHelper.current = false;
         }
-    }, [newPrivate]);
+    }, [newPrivate, creatingGroup]);
 
     function handleOnClickGeneralButton() {
         setActive((previousValue) => !previousValue);
@@ -121,11 +122,13 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
         // we load the screen with the contacts
         // we hide the list, the button also goes hidden
         setNewPrivate(true);
+        activationHelper.current = true;
         closeMenus();
     }
 
     function handleNewGroup() {
         setNewGroup({ first: true, second: false });
+        activationHelper.current = true;
         closeMenus();
     }
 
@@ -178,7 +181,7 @@ function NewConnection({ newPrivate, newGroup, setNewPrivate, setNewGroup }) {
 }
 NewConnection.propTypes = {
     newPrivate: PropTypes.bool.isRequired,
-    newGroup: PropTypes.bool.isRequired,
+    creatingGroup: PropTypes.bool.isRequired,
     setNewPrivate: PropTypes.func.isRequired,
     setNewGroup: PropTypes.func.isRequired,
 };

@@ -5,7 +5,7 @@ import { Form } from "react-router-dom";
 import { useRef, useState } from "react";
 import styles from "./DialogNewPrivateConnection.module.css";
 
-function DialogNewPrivateConnection({ state, textModal, input, onSubmit, setState }) {
+function DialogNewPrivateConnection({ state, setState, textModal, input, onSubmit }) {
     const [msgArray, setMsgArray] = useState([]);
     const refDialog = useRef(null);
 

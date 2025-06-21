@@ -344,7 +344,7 @@ export default function Homepage() {
             <div className={styles.leftSide} style={{ width: `${widthSidebar}px` }}>
                 <NewConnection
                     newPrivate={creatingPrivateMessage}
-                    newGroup={creatingGroupObj.first}
+                    creatingGroup={creatingGroupObj.first}
                     setNewPrivate={setCreatingPrivateMessage}
                     setNewGroup={setCreatingGroupObj}
                 />

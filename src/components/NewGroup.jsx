@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./NewGroup.module.css";
 import UserSelector from "./UserSelector.jsx";
 import InputText from "./InputComp.jsx";
@@ -12,56 +12,48 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
     const refContainerData = useRef(null);
     const refButtonNextStep = useRef(null);
     const refButtonCreate = useRef(null);
-    const refHandlerTimeout = useRef({
-        users: setTimeout(() => {}, 0),
-        data: setTimeout(() => {}, 0),
-        nextButton: setTimeout(() => {}, 0),
-        createButton: setTimeout(() => {}, 0),
-        generalContainer: setTimeout(() => {}, 0),
-    });
+    const refHandlerTimeout = useRef(setTimeout(() => {}, 0));
     const [listToAdd, setListToAdd] = useState([]);
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
         return () => {
-            clearTimeout(refHandlerTimeout.current.users);
-            clearTimeout(refHandlerTimeout.current.data);
-            clearTimeout(refHandlerTimeout.current.next);
-            clearTimeout(refHandlerTimeout.current.create);
             clearTimeout(refHandlerTimeout.current.generalContainer);
         };
     }, []);
 
-    if (refContainerUsers.current) {
-        if (state.second) {
-            clearTimeout(refHandlerTimeout.current.data);
-            enableContainer(refContainerData.current, true);
-            enableContainer(refContainerUsers.current, false, "users");
-            enableContainer(refButtonNextStep.current, false, "next");
-        } else if (state.first) {
-            clearTimeout(refHandlerTimeout.current.users);
-            enableContainer(refGeneralContainer.current, true);
-            enableContainer(refContainerUsers.current, true);
-            enableContainer(refButtonNextStep.current, true);
-            enableContainer(refContainerData.current, false, "data");
-            enableContainer(refButtonCreate.current, false, "create");
-        } else {
-            enableContainer(refContainerUsers.current, false, "users");
-            enableContainer(refButtonNextStep.current, false, "next");
-            enableContainer(refContainerData.current, false, "data");
-            enableContainer(refButtonCreate.current, false, "create");
-            enableContainer(refGeneralContainer.current, false, "generalContainer");
+    useEffect(() => {
+        if (state.first) {
+            setIsMounted(true);
         }
-    }
+        if (refContainerUsers.current) {
+            if (state.second) {
+                enableContainer(refContainerData.current, true);
+                enableContainer(refButtonCreate.current, true);
+                enableContainer(refContainerUsers.current, false);
+                enableContainer(refButtonNextStep.current, false);
+            } else if (state.first) {
+                setIsMounted(true);
+                clearTimeout(refHandlerTimeout.current);
+                enableContainer(refGeneralContainer.current, true);
+                enableContainer(refContainerUsers.current, true);
+                enableContainer(refButtonNextStep.current, true);
+                enableContainer(refContainerData.current, false);
+                enableContainer(refButtonCreate.current, false);
+            } else {
+                enableContainer(refContainerUsers.current, false);
+                enableContainer(refButtonNextStep.current, false);
+                enableContainer(refContainerData.current, false);
+                enableContainer(refButtonCreate.current, false);
+                enableContainer(refGeneralContainer.current, false);
+                refHandlerTimeout.current = setTimeout(() => setIsMounted(false), 500);
+            }
+        }
+    }, [state.first, state.second, isMounted]);
 
-    function enableContainer(element, flag, type) {
-        element.style["visibility"] = flag ? "visible" : "hidden";
+    function enableContainer(element, flag) {
         element.style["opacity"] = flag ? 1 : 0;
         element.style["z-index"] = flag ? "1" : "-1";
-        if (flag === false) {
-            refHandlerTimeout.current[type] = setTimeout(() => {
-                element.style["visibility"] = "hidden";
-            }, 200);
-        }
     }
 
     function handleNextStep(e) {
@@ -91,14 +83,15 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
         if (value) {
             enableContainer(refButtonCreate.current, true);
         } else {
-            enableContainer(refButtonCreate.current, false, "create");
+            enableContainer(refButtonCreate.current, false);
         }
     }
 
-    const usersIdArr = chatUtils.getUsersId(contactList);
-    return (
+    const usersIdArr = useMemo(() => chatUtils.getAllUsersId(contactList), [state]);
+
+    return isMounted ? (
         <div className={styles.general} ref={refGeneralContainer}>
-            <div className={styles.container} ref={refContainerUsers}>
+            <div className={styles.userListContainer} ref={refContainerUsers}>
                 <form className={styles.form} onSubmit={handleNextStep}>
                     {usersIdArr.map((id) => {
                         const name = contactList[id].name;
@@ -113,7 +106,7 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
                     </button>
                 </form>
             </div>
-            <div className={styles.container} ref={refContainerData}>
+            <div className={styles.groupNameContainer} ref={refContainerData}>
                 <form className={styles.form} onSubmit={handleLastStep}>
                     <InputText
                         type={"text"}
@@ -129,7 +122,7 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
                 </form>
             </div>
         </div>
-    );
+    ) : null;
 }
 
 NewGroup.propTypes = {

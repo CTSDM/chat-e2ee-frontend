@@ -53,7 +53,7 @@ export default function Homepage() {
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp);
         // retry the websocket connection
-        const intervalId = setInterval(startWebSocket, 2000);
+        const intervalId = setInterval(startWebSocket, 200);
         return () => {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
@@ -62,7 +62,7 @@ export default function Homepage() {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(() => setErrMessages(null), 2000);
+        const timer = setTimeout(() => setErrMessages(null), 200);
         return () => clearTimeout(timer);
     }, [errMessages]);
 
@@ -85,10 +85,6 @@ export default function Homepage() {
                 setTarget((previousTarget) => {
                     if (previousTarget) return "";
                     else {
-                        const dialogPrivate = document.querySelector("dialog.add");
-                        if (dialogPrivate.open) {
-                            return "";
-                        }
                         setCreatingGroupObj((previous) => {
                             if (previous.second === true) {
                                 return { first: true, second: false };
@@ -348,12 +344,6 @@ export default function Homepage() {
                     setNewPrivate={setCreatingPrivateMessage}
                     setNewGroup={setCreatingGroupObj}
                 />
-                <SearchMessages
-                    setSearchTerm={setSearchTerm}
-                    searchTerm={searchTerm}
-                    setResult={setSearchResult}
-                    chatList={chatMessages}
-                />
                 <PreviewWrapper
                     searchTerm={searchTerm}
                     searchResult={searchResult}
@@ -364,6 +354,9 @@ export default function Homepage() {
                     setTarget={setTarget}
                     setTargetMessage={setTargetMessage}
                     active={!creatingPrivateMessage && !setCreatingGroupObj.first}
+                    setSearchTerm={setSearchTerm}
+                    setResult={setSearchResult}
+                    chatList={chatMessages}
                 />
                 <NewPrivateMessage
                     contactList={contactList.current}

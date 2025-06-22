@@ -4,6 +4,7 @@ import PreviewSearch from "./PreviewSearch.jsx";
 import PreviewMessages from "./PreviewMessages.jsx";
 import { chatUtils } from "../utils/utils.js";
 import styles from "./PreviewWrapper.module.css";
+import SearchMessages from "./SearchMessages.jsx";
 
 function PreviewSearchWrapper({
     searchTerm,
@@ -15,6 +16,9 @@ function PreviewSearchWrapper({
     setTarget,
     setTargetMessage,
     active,
+    setSearchTerm,
+    setResult,
+    chatList,
 }) {
     const refContainer = useRef(null);
     const contactsOrdered = chatUtils.getContactsOrdered(contactList);
@@ -52,6 +56,12 @@ function PreviewSearchWrapper({
 
     return (
         <div className={styles.chatContainer} ref={refContainer}>
+            <SearchMessages
+                setSearchTerm={setSearchTerm}
+                searchTerm={searchTerm}
+                setResult={setResult}
+                chatList={chatList}
+            />
             {searchTerm
                 ? searchResult.map((message) => {
                       const context = message.context;
@@ -95,6 +105,16 @@ PreviewSearchWrapper.propTypes = {
     setTarget: PropTypes.func.isRequired,
     setTargetMessage: PropTypes.func.isRequired,
     active: PropTypes.bool.isRequired,
+    setSearchTerm: PropTypes.func.isRequired,
+    setResult: PropTypes.func.isRequired,
+    chatList: PropTypes.objectOf(
+        PropTypes.shape({
+            last: PropTypes.string,
+            lastIndex: PropTypes.number,
+            messages: PropTypes.object.isRequired,
+            name: PropTypes.string.isRequired,
+        }),
+    ).isRequired,
 };
 
 export default PreviewSearchWrapper;

@@ -4,10 +4,14 @@
   height: 100%;
   width: 100%;
   background-color: #17212b;
+  transition: all 0.2s ease;
+  opacity: 0;
 }
 
-.container {
-  visibility: hidden;
+.userListcontainer,
+.groupNameContainer {
+  opacity: 0;
+  background-color: #17212b;
   transition: all 0.2s ease;
   position: absolute;
   top: 20px;
@@ -24,10 +28,6 @@
   background-color: #17212b;
 }
 
-.user {
-  background: #17212b;
-}
-
 .user:focus {
   outline: none;
 }
@@ -38,7 +38,6 @@
 
 .add,
 .next {
-  visibility: hidden;
   position: absolute;
   bottom: 80px;
   right: 30px;

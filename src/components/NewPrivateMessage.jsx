@@ -1,42 +1,46 @@
 import PropTypes from "prop-types";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import addContact from "../assets/person_add.svg";
 import styles from "./NewPrivateMessage.module.css";
 import { chatUtils } from "../utils/utils.js";
 import DialogNewPrivateConnection from "./DialogNewPrivateConnection.jsx";
+import SearchContacts from "./SearchContacts.jsx";
 import { env } from "../../config/config.js";
 
 export default function NewPrivateMessage({ active, contactList, setTarget, newConnection }) {
     const refContainer = useRef(null);
     const refAddContactButton = useRef(null);
-    const refHandlerTimeout = useRef(setTimeout(() => {}, 0));
     const [toAdd, setToAdd] = useState(false);
+    const [search, setSearch] = useState("");
+    const [isMounted, setIsMounted] = useState(false);
+    const refHandlerTimeout = useRef(setTimeout(() => {}, 0));
 
     useEffect(() => {
         return () => clearTimeout(refHandlerTimeout.current);
     }, []);
 
-    if (refContainer.current) {
+    const usersIdArr = useMemo(() => chatUtils.getUsersId(contactList, search), [active, search]);
+
+    useEffect(() => {
         if (active) {
-            clearTimeout(refHandlerTimeout.current);
-            refContainer.current.style["visibility"] = "visible";
-            refContainer.current.style["opacity"] = 1;
-            refContainer.current.style["z-index"] = "1";
-            refAddContactButton.current.style["visibility"] = "visible";
-        } else {
-            refContainer.current.style["opacity"] = 0;
-            refContainer.current.style["z-index"] = "-1";
-            refHandlerTimeout.current = setTimeout(() => {
-                refContainer.current.style["visibility"] = "hidden";
-                refAddContactButton.current.style["visibility"] = "hidden";
-            }, 200);
+            setIsMounted(true);
         }
-    }
+        if (refContainer.current) {
+            if (active) {
+                clearTimeout(refHandlerTimeout.current);
+                refContainer.current.style["opacity"] = 1;
+                refContainer.current.style["z-index"] = "1";
+            } else {
+                refContainer.current.style["opacity"] = 0;
+                refContainer.current.style["z-index"] = "-1";
+                refHandlerTimeout.current = setTimeout(() => setIsMounted(false), 500);
+            }
+        }
+    }, [active, isMounted]);
 
-    const usersIdArr = chatUtils.getUsersId(contactList);
-
-    return (
+    return isMounted ? (
         <div className={styles.container} ref={refContainer}>
+            <SearchContacts value={search} setValue={setSearch} />
             <div className={styles.general}>
                 {usersIdArr.map((id) => {
                     const user = contactList[id];
@@ -58,7 +62,7 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
                 input={env.inputs.signup[1]}
             />
         </div>
-    );
+    ) : null;
 }
 
 NewPrivateMessage.propTypes = {

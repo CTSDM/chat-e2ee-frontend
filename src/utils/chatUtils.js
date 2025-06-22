@@ -124,10 +124,32 @@ function getUnreadGroups(messages, contact, username) {
     }
 }
 
-function getUsersId(contactList) {
+function getAllUsersId(contactList) {
     const contactsId = getKeys(contactList);
     const usersId = contactsId.filter((id) => contactList[id].type === "user");
     return usersId;
+}
+
+function getUsersId(contactList, search) {
+    const allUsersId = getAllUsersId(contactList);
+    if (!search) {
+        return allUsersId;
+    } else {
+        const searchLength = search.length;
+        const filteredIds = allUsersId.filter((id) => {
+            if (search.length > id.length) {
+                return false;
+            } else {
+                for (let i = 0; i < searchLength; ++i) {
+                    if (search[i] !== id[i]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+        return filteredIds;
+    }
 }
 
 export default {
@@ -138,5 +160,6 @@ export default {
     updateContactLastMessage,
     getContactsOrdered,
     getUnread,
+    getAllUsersId,
     getUsersId,
 };

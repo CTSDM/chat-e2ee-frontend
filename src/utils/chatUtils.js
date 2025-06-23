@@ -95,7 +95,7 @@ function getUnreadPrivate(messages) {
     const messagesArr = orderChatRoom(messages);
     if (messagesArr && messagesArr.length) {
         let count = 0;
-        for (let i = messagesArr.length - 1; i > 0; --i) {
+        for (let i = messagesArr.length - 1; i >= 0; --i) {
             if (messagesArr[i].read === false) {
                 ++count;
             } else {
@@ -110,7 +110,7 @@ function getUnreadGroups(messages, contact, username) {
     const messagesArr = orderChatRoom(messages);
     if (messagesArr && messagesArr.length) {
         let count = 0;
-        for (let i = messagesArr.length - 1; i > 0; --i) {
+        for (let i = messagesArr.length - 1; i >= 0; --i) {
             const message = messagesArr[i];
             if (message.read.length === 0) {
                 ++count;

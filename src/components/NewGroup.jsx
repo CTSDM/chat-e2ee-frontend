@@ -5,6 +5,7 @@ import UserSelector from "./UserSelector.jsx";
 import InputText from "./InputComp.jsx";
 import { chatUtils } from "../utils/utils.js";
 import rightArrow from "../assets/right_arrow.svg";
+import SearchContacts from "./SearchContacts.jsx";
 
 export default function NewGroup({ state, setState, contactList, newGroup }) {
     const refGeneralContainer = useRef(null);
@@ -15,6 +16,7 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
     const refHandlerTimeout = useRef(setTimeout(() => {}, 0));
     const [listToAdd, setListToAdd] = useState([]);
     const [isMounted, setIsMounted] = useState(false);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         return () => {
@@ -87,11 +89,12 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
         }
     }
 
-    const usersIdArr = useMemo(() => chatUtils.getAllUsersId(contactList), [state]);
+    const usersIdArr = useMemo(() => chatUtils.getUsersId(contactList, search), [state, search]);
 
     return isMounted ? (
         <div className={styles.general} ref={refGeneralContainer}>
             <div className={styles.userListContainer} ref={refContainerUsers}>
+                <SearchContacts value={search} setValue={setSearch} />
                 <form className={styles.form} onSubmit={handleNextStep}>
                     {usersIdArr.map((id) => {
                         const name = contactList[id].name;

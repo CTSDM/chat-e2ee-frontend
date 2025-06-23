@@ -160,6 +160,5 @@ export default {
     updateContactLastMessage,
     getContactsOrdered,
     getUnread,
-    getAllUsersId,
     getUsersId,
 };

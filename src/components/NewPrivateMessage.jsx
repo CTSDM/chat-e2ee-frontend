@@ -29,10 +29,10 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
             if (active) {
                 clearTimeout(refHandlerTimeout.current);
                 refContainer.current.style["opacity"] = 1;
-                refContainer.current.style["z-index"] = "1";
+                refAddContactButton.current.style["opacity"] = 1;
             } else {
                 refContainer.current.style["opacity"] = 0;
-                refContainer.current.style["z-index"] = "-1";
+                refAddContactButton.current.style["opacity"] = 0;
                 refHandlerTimeout.current = setTimeout(() => setIsMounted(false), 500);
             }
         }

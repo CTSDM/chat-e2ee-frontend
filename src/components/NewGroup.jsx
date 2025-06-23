@@ -95,6 +95,7 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
         <div className={styles.general} ref={refGeneralContainer}>
             <SearchContacts value={search} setValue={setSearch} />
             <div className={styles.userListContainer} ref={refContainerUsers}>
+                <SearchContacts value={search} setValue={setSearch} />
                 <form className={styles.form} onSubmit={handleNextStep}>
                     {usersIdArr.map((id) => {
                         const name = contactList[id].name;

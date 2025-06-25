@@ -5,7 +5,9 @@ import styles from "./NewPrivateMessage.module.css";
 import { chatUtils } from "../utils/utils.js";
 import DialogNewPrivateConnection from "./DialogNewPrivateConnection.jsx";
 import SearchContacts from "./SearchContacts.jsx";
-import { env } from "../../config/config.js";
+import NoConnections from "./NoConnections.jsx";
+import penSvg from "../assets/stylus_pen.svg";
+import { env, texts } from "../../config/config.js";
 
 export default function NewPrivateMessage({ active, contactList, setTarget, newConnection }) {
     const refContainer = useRef(null);
@@ -18,8 +20,6 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
     useEffect(() => {
         return () => clearTimeout(refHandlerTimeout.current);
     }, []);
-
-    const usersIdArr = useMemo(() => chatUtils.getUsersId(contactList, search), [active, search]);
 
     useEffect(() => {
         if (active) {
@@ -38,18 +38,32 @@ export default function NewPrivateMessage({ active, contactList, setTarget, newC
         }
     }, [active, isMounted]);
 
+    const contactsExist = chatUtils.getKeys(contactList).length > 0;
+    const usersIdArr = useMemo(() => {
+        return contactsExist ? chatUtils.getUsersId(contactList, search) : [];
+    }, [active, search, contactsExist]);
+
     return isMounted ? (
         <div className={styles.container} ref={refContainer}>
             <SearchContacts value={search} setValue={setSearch} />
             <div className={styles.general}>
-                {usersIdArr.map((id) => {
-                    const user = contactList[id];
-                    return (
-                        <button key={id} className={styles.user} onClick={() => setTarget(id)}>
-                            {user.name}
-                        </button>
-                    );
-                })}
+                {contactsExist ? null : <NoConnections imgSrc={penSvg} text={texts.noContacts} />}
+                {usersIdArr.length > 0
+                    ? usersIdArr.map((id) => {
+                          const user = contactList[id];
+                          return (
+                              <button
+                                  key={id}
+                                  className={styles.user}
+                                  onClick={() => setTarget(id)}
+                              >
+                                  {user.name}
+                              </button>
+                          );
+                      })
+                    : contactsExist
+                      ? "No matches"
+                      : null}
             </div>
             <button className={styles.add} ref={refAddContactButton} onClick={() => setToAdd(true)}>
                 <img src={addContact} alt="helper button" />

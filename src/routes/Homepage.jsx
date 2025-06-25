@@ -1,5 +1,4 @@
 import { useContext, useEffect, useState, useRef } from "react";
-import SearchMessages from "../components/SearchMessages.jsx";
 import PreviewWrapper from "../components/PreviewWrapper.jsx";
 import Chat from "../components/Chat.jsx";
 import PopupMessage from "../components/PopupMessage.jsx";

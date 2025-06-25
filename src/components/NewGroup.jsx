@@ -6,6 +6,9 @@ import InputText from "./InputComp.jsx";
 import { chatUtils } from "../utils/utils.js";
 import rightArrow from "../assets/right_arrow.svg";
 import SearchContacts from "./SearchContacts.jsx";
+import NoConnections from "./NoConnections.jsx";
+import penSvg from "../assets/stylus_pen.svg";
+import { texts } from "../../config/config.js";
 
 export default function NewGroup({ state, setState, contactList, newGroup }) {
     const refGeneralContainer = useRef(null);
@@ -89,13 +92,16 @@ export default function NewGroup({ state, setState, contactList, newGroup }) {
         }
     }
 
-    const usersIdArr = useMemo(() => chatUtils.getUsersId(contactList, search), [state, search]);
+    const contactsExist = chatUtils.getKeys(contactList).length > 0;
+    const usersIdArr = useMemo(() => {
+        return contactsExist ? chatUtils.getUsersId(contactList, search) : [];
+    }, [state.first, search, contactsExist]);
 
     return isMounted ? (
         <div className={styles.general} ref={refGeneralContainer}>
-            <SearchContacts value={search} setValue={setSearch} />
             <div className={styles.userListContainer} ref={refContainerUsers}>
                 <SearchContacts value={search} setValue={setSearch} />
+                {contactsExist ? null : <NoConnections imgSrc={penSvg} text={texts.noContacts} />}
                 <form className={styles.form} onSubmit={handleNextStep}>
                     {usersIdArr.map((id) => {
                         const name = contactList[id].name;

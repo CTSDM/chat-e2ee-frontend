@@ -5,6 +5,9 @@ import PreviewMessages from "./PreviewMessages.jsx";
 import { chatUtils } from "../utils/utils.js";
 import styles from "./PreviewWrapper.module.css";
 import SearchMessages from "./SearchMessages.jsx";
+import NoConnections from "./NoConnections.jsx";
+import connectionSvg from "../assets/connections.svg";
+import { texts } from "../../config/config.js";
 
 function PreviewSearchWrapper({
     searchTerm,
@@ -22,9 +25,6 @@ function PreviewSearchWrapper({
 }) {
     const refContainer = useRef(null);
     const contactsOrdered = chatUtils.getContactsOrdered(contactList);
-    if (contactsOrdered.length === 0) {
-        return <div>No users yet...</div>;
-    }
 
     function handlePreviewMessage(target) {
         // we change the current target, and thus the shown messages will change
@@ -54,6 +54,7 @@ function PreviewSearchWrapper({
         }
     }
 
+    const showEmpty = contactsOrdered.length === 0;
     return (
         <div className={styles.chatContainer} ref={refContainer}>
             <SearchMessages
@@ -91,6 +92,7 @@ function PreviewSearchWrapper({
                           />
                       );
                   })}
+            {showEmpty ? <NoConnections imgSrc={connectionSvg} text={texts.noChat} /> : null}
         </div>
     );
 }

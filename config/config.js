@@ -3,6 +3,17 @@ const elementsNavBar = {
     loggedOut: { Home: "/", Signup: "/signup", Login: "/login" },
 };
 
+const texts = {
+    noChat: {
+        title: "Your chats will appear here",
+        body: "Add contacts now to start a conversation!",
+    },
+    noContacts: {
+        title: "Your contacts will appear here",
+        body: "Add contacts now to start a conversation!",
+    },
+};
+
 const env = {
     inputs: {
         message: {
@@ -99,4 +110,4 @@ const env = {
 
 env.wsType = env.dev.status ? "ws" : "wss";
 
-export { env, elementsNavBar };
+export { env, elementsNavBar, texts };

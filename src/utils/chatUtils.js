@@ -161,4 +161,5 @@ export default {
     getContactsOrdered,
     getUnread,
     getUsersId,
+    getKeys,
 };

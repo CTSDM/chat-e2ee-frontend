@@ -62,6 +62,50 @@ async function submitSignup(data) {
     }
 }
 
+async function addNewContact(contact) {
+    const data = {
+        contact: contact,
+    };
+    const url = `${env.serverUrl}/contact`;
+    try {
+        const response = await fetch(url, {
+            mode: "cors",
+            credentials: "include",
+            method: "post",
+            body: JSON.stringify(data),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        if (response.ok) {
+            const json = await response.json();
+            return {
+                status: response.status,
+                ...json,
+            };
+        } else if (response.status === 400) {
+            const json = await response.json();
+            return { status: response.status, errMsg: json.errMsg };
+        } else if (response.status === 409) {
+            return { status: response.status };
+        }
+    } catch {
+        return { message: "The server looks like is down, please try again later." };
+    }
+}
+
+async function getAllContacts() {
+    const url = `${env.serverUrl}/contact`;
+    await fetch(url, {
+        mode: "cors",
+        credentials: "include",
+        method: "get",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+}
+
 async function getPublicKey(endPoint, context) {
     const url = `${env.serverUrl}/${endPoint}/${context}/keys`;
     try {
@@ -105,4 +149,12 @@ async function submitLogout(controller) {
     }
 }
 
-export default { getLogin, submitSignup, submitLogin, submitLogout, getPublicKey };
+export default {
+    getLogin,
+    submitSignup,
+    submitLogin,
+    submitLogout,
+    getPublicKey,
+    addNewContact,
+    getAllContacts,
+};

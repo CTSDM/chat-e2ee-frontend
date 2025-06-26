@@ -40,6 +40,10 @@ export default function Homepage() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        requests.getAllContacts();
+    }, []);
+
+    useEffect(() => {
         // resizing the handler
         const handleMouseMove = (e) => {
             if (isResize.current) {
@@ -61,7 +65,7 @@ export default function Homepage() {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(() => setErrMessages(null), 200);
+        const timer = setTimeout(() => setErrMessages(null), 2500);
         return () => clearTimeout(timer);
     }, [errMessages]);
 
@@ -159,9 +163,9 @@ export default function Homepage() {
         }
     }
 
-    async function handleNewConnection(typedPublicUsername) {
+    async function handleNewConnection(newContact) {
         // here we have to make sure that the response handles beautifully all the different options
-        const response = await requests.getPublicKey("user", typedPublicUsername.toLowerCase());
+        const response = await requests.addNewContact(newContact.toLowerCase());
         if (response.status === 200) {
             const salt = dataManipulation.xorArray(
                 userVars.current.salt,
@@ -199,6 +203,8 @@ export default function Homepage() {
             setErrMessages("The user requested does not exist.");
         } else if (response.status === 400) {
             setErrMessages("The username is not valid.");
+        } else if (response.status === 409) {
+            setErrMessages("The user is already on your contact list.");
         }
     }
 
